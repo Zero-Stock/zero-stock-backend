@@ -10,7 +10,6 @@ class ClientCompanyAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'created_at')
     search_fields = ('name', 'code')
 
-
 # 2. Define an Inline view for UserProfile
 # This makes the Profile fields appear INSIDE the User edit page
 class UserProfileInline(admin.StackedInline):
