@@ -25,6 +25,8 @@ SECRET_KEY = 'django-insecure-zc#o!f)nc_6*al4g9(km*%r825&$y6+##&t@xk@gvoc*#5)+*j
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 ALLOWED_HOSTS = []
 
 
