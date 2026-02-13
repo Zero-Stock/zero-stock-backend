@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import ClientCompany, DietCategory, Dish, RawMaterial
+from core.models import ClientCompany, DietCategory, Dish, RawMaterial, Unit
 
 
 # ==========================================
@@ -127,3 +127,90 @@ class ProcurementItem(models.Model):
 
     class Meta:
         verbose_name = "Procurement Line Item"
+
+
+
+#Below is what chief need to enter daily:
+class MealType(models.TextChoices):
+    ' Choose the meal type'
+    BREAKFAST = "B", "Breakfast"
+    LUNCH = "L", "Lunch"
+    DINNER = "D", "Dinner"
+
+class DailyMenu(models.Model):
+    """
+    Defines which dishes are served for a specific company,
+    on a specific date, for a specific diet type and meal time.
+
+    Example:
+        Company A
+        2026-02-10
+        Diet: Standard A
+        Meal: Lunch
+        → Dishes: Tomato Beef, Stir-fried Cabbage
+    """
+
+    # Company (data isolation)
+    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
+
+    # Service date
+    date = models.DateField()
+
+    # Diet type (e.g., Standard A, Diabetic)
+    diet = models.ForeignKey(DietCategory, on_delete=models.CASCADE)
+
+    # Meal time (Breakfast / Lunch / Dinner)
+    meal_type = models.CharField(max_length=1, choices=MealType.choices)
+
+    # Dishes included in this meal
+    dishes = models.ManyToManyField(Dish, blank=True)
+
+    class Meta:
+        # Prevent duplicate menu entries for same company/date/diet/meal
+        unique_together = ('company', 'date', 'diet', 'meal_type')
+
+class StapleType(models.TextChoices):
+    """
+    Types of staple food.
+    Used to distinguish rice and noodle demand.
+    """
+    RICE = "RICE", "Rice"
+    NOODLE = "NOODLE", "Noodle"
+
+class StapleDemand(models.Model):
+    """
+    Stores staple food demand for a specific company,
+    date, diet type, and meal time.
+
+    Example:
+        2026-02-10
+        Diet: Standard A
+        Lunch
+        Rice: 120 kg
+        Noodle: 30 kg
+    """
+
+    # Company (data isolation)
+    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
+
+    # Service date
+    date = models.DateField()
+
+    # Diet type
+    diet = models.ForeignKey(DietCategory, on_delete=models.CASCADE)
+
+    # Meal time (Breakfast / Lunch / Dinner)
+    meal_type = models.CharField(max_length=1, choices=MealType.choices)
+
+    # Staple category (Rice or Noodle)
+    staple_type = models.CharField(max_length=10, choices=StapleType.choices)
+
+    # Required quantity
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # Unit of measurement (e.g., kg)
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
+
+    class Meta:
+        # Prevent duplicate staple entries for same combination
+        unique_together = ('company', 'date', 'diet', 'meal_type', 'staple_type')
