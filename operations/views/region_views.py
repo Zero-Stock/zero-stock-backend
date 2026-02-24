@@ -1,13 +1,13 @@
-from django.shortcuts import render
-
 # Create your views here.
 # operations/region_views.py
+from django.db import IntegrityError
+from rest_framework.exceptions import ValidationError
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
-from .models import ClientCompanyRegion
-from .serializers import RegionSerializer
+from ..models import ClientCompanyRegion
+from ..serializers import RegionSerializer
 
 
 class CompanyRegionListCreateView(generics.ListCreateAPIView):
@@ -46,5 +46,5 @@ class CompanyRegionListCreateView(generics.ListCreateAPIView):
         try:
             serializer.save(company_id=company_id)
         except IntegrityError:
-            # 防并发：两个请求同时创建同名 region 时，DB unique 会报错
             raise ValidationError({"name": "This region already exists in this company."})
+        

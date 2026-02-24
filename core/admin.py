@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import ClientCompany, UserProfile
+from .models import DietCategory
 
 
 # 1. Register ClientCompany so you can create companies first
@@ -41,3 +42,4 @@ class UserAdmin(BaseUserAdmin):
 # 4. Re-register User model with the new admin configuration
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
+admin.site.register(DietCategory)

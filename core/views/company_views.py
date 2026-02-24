@@ -1,10 +1,7 @@
-# Create your views here.
-# Company Views:
-# core/views.py
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from .models import ClientCompany
-from .serializers import CompanySerializer
+from ..models import ClientCompany
+from ..serializers import CompanySerializer
 
 class CompanyListView(generics.ListAPIView):
     serializer_class = CompanySerializer
