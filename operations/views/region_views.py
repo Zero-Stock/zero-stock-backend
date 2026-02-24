@@ -6,8 +6,8 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 
-from .models import ClientCompanyRegion
-from .serializers import RegionSerializer
+from ..models import ClientCompanyRegion
+from ..serializers import RegionSerializer
 
 
 class CompanyRegionListCreateView(generics.ListCreateAPIView):
@@ -47,3 +47,4 @@ class CompanyRegionListCreateView(generics.ListCreateAPIView):
             serializer.save(company_id=company_id)
         except IntegrityError:
             raise ValidationError({"name": "This region already exists in this company."})
+        

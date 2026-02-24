@@ -1,0 +1,6 @@
+from .region_views import CompanyRegionListCreateView
+from .census_views import (
+    DailyCensusListView,
+    DailyCensusBatchView,
+    DailyCensusSummaryView,
+)
