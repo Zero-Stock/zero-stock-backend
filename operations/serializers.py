@@ -1,6 +1,7 @@
 # operations/serializers.py
 from rest_framework import serializers
 from .models import ClientCompanyRegion, DailyCensus
+from .models import ProcurementRequest, ProcurementItem
 
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -63,3 +64,46 @@ class DailyCensusBatchSerializer(serializers.Serializer):
                 )
             seen.add(key)
         return items
+    
+class ProcurementItemSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.CharField(source="raw_material.name", read_only=True)
+    unit = serializers.CharField(source="raw_material.default_unit.name", read_only=True)
+    spec = serializers.CharField(source="raw_material.spec", read_only=True)
+    supplier = serializers.CharField(source="raw_material.supplier", read_only=True)
+    category = serializers.CharField(source="raw_material.category", read_only=True)
+
+    class Meta:
+        model = ProcurementItem
+        fields = [
+            "id",
+            "raw_material",
+            "raw_material_name",
+            "total_gross_quantity",
+            "unit",
+            "spec",
+            "supplier",
+            "category",
+            "notes",
+        ]
+
+
+class ProcurementRequestSerializer(serializers.ModelSerializer):
+    items = ProcurementItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProcurementRequest
+        fields = [
+            "id",
+            "company",
+            "target_date",
+            "status",
+            "created_at",
+            "items",
+        ]
+        read_only_fields = ["id", "company", "status", "created_at", "items"]
+    
+from rest_framework import serializers
+class ProcurementGenerateSerializer(serializers.Serializer):
+    date = serializers.DateField()
+
+

@@ -84,6 +84,8 @@ class RawMaterial(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="Material Name")
     category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, verbose_name="Category")
     default_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, verbose_name="Purchase Unit")
+    supplier = models.CharField(max_length=100, blank=True, default="", verbose_name="Supplier")
+    spec = models.CharField(max_length=100, blank=True, default="", verbose_name="Spec/Package")
 
     def __str__(self):
         return self.name
