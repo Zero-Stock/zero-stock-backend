@@ -1,5 +1,5 @@
 from django.db import models
-from core.models import ClientCompany, DietCategory, Dish, RawMaterial, ProcessedMaterial
+from core.models import ClientCompany, DietCategory, Dish, RawMaterial, Unit
 
 
 # ==========================================
@@ -102,7 +102,6 @@ class ProcurementRequest(models.Model):
     """
     STATUS_CHOICES = (
         ('DRAFT', 'Draft (Calculating)'),
-        ('PENDING', 'Pending Supplier Selection'),
         ('CONFIRMED', 'Confirmed (Sent)'),
     )
 
@@ -119,31 +118,12 @@ class ProcurementItem(models.Model):
     """
     [OUTPUT] Calculated Ingredients.
     Logic: Census(Count) * WeeklyMenu(Dishes) * Dish(Recipe) / Yield
-    Stores total + AM/PM split, plus supplier assignment info.
     """
     request = models.ForeignKey(ProcurementRequest, on_delete=models.CASCADE, related_name='items')
     raw_material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE)
 
     total_gross_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Qty (kg)")
-    am_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="AM Qty (B+L)")
-    pm_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="PM Qty (D)")
-
-    # Supplier assignment (filled in step 2)
-    supplier = models.ForeignKey(
-        'core.Supplier', on_delete=models.SET_NULL,
-        null=True, blank=True, verbose_name="供应商"
-    )
-    supplier_unit_name = models.CharField(max_length=20, blank=True, default='', verbose_name="供应商单位")
-    supplier_unit_qty = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name="供应商单位数量"
-    )
-    supplier_price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name="单价(每供应商单位)"
-    )
-
-    notes = models.TextField(blank=True)
+    notes = models.TextField(blank=True)  # To store logs like "Monday Menu: 50 people x 0.2kg"
 
     class Meta:
         verbose_name = "Procurement Line Item"
@@ -229,138 +209,8 @@ class StapleDemand(models.Model):
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
 
     # Unit of measurement (e.g., kg)
-    unit = models.CharField(max_length=20, default='kg', verbose_name="Unit")
+    unit = models.ForeignKey(Unit, on_delete=models.PROTECT)
 
     class Meta:
         # Prevent duplicate staple entries for same combination
         unique_together = ('company', 'date', 'diet', 'meal_type', 'staple_type')
-
-
-# ==========================================
-# 5. Receiving Record
-# ==========================================
-
-class ReceivingRecord(models.Model):
-    """
-    Receiving/inspection record, linked to a Procurement Request.
-    Tracks actual received quantities vs. expected quantities.
-    """
-    STATUS_CHOICES = (
-        ('PENDING', 'Pending Inspection'),
-        ('COMPLETED', 'Completed'),
-    )
-
-    procurement = models.ForeignKey(ProcurementRequest, on_delete=models.CASCADE, related_name='receivings')
-    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
-    received_date = models.DateField(auto_now_add=True, verbose_name="Received Date")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
-    notes = models.TextField(blank=True, verbose_name="Notes")
-
-    class Meta:
-        verbose_name = "Receiving Record"
-
-    def __str__(self):
-        return f"RCV-{self.procurement}-{self.received_date}"
-
-
-class ReceivingItem(models.Model):
-    """
-    Receiving line item: expected vs. actual quantity for each raw material.
-    """
-    receiving = models.ForeignKey(ReceivingRecord, on_delete=models.CASCADE, related_name='items')
-    raw_material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE)
-    expected_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Expected Qty")
-    actual_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="Actual Qty")
-    notes = models.TextField(blank=True, verbose_name="Notes")
-
-    class Meta:
-        verbose_name = "Receiving Item"
-
-
-# ==========================================
-# 6. Processing Order
-# ==========================================
-
-class ProcessingOrder(models.Model):
-    """
-    Processing demand order header.
-    Auto-calculated from daily menu + headcount.
-    """
-    STATUS_CHOICES = (
-        ('DRAFT', 'Draft'),
-        ('CONFIRMED', 'Confirmed'),
-    )
-
-    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
-    target_date = models.DateField(verbose_name="Processing Date")
-    created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
-
-    class Meta:
-        verbose_name = "Processing Order"
-
-    def __str__(self):
-        return f"PROC-{self.target_date}-{self.company.code}"
-
-
-class ProcessingItem(models.Model):
-    """
-    Processing demand line item: required quantity for each
-    raw material + processing method combination, linked to the source dish.
-    """
-    order = models.ForeignKey(ProcessingOrder, on_delete=models.CASCADE, related_name='items')
-    raw_material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE)
-    processed_material = models.ForeignKey(ProcessedMaterial, on_delete=models.SET_NULL, null=True, blank=True)
-    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, verbose_name="Source Dish")
-    net_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Net Qty (kg)")
-    gross_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Gross Qty (kg)")
-
-    class Meta:
-        verbose_name = "Processing Item"
-
-    def __str__(self):
-        method = self.processed_material.method_name if self.processed_material else "无加工"
-        return f"{self.raw_material.name}[{method}] for {self.dish.name}"
-
-
-# ==========================================
-# 7. Delivery Order
-# ==========================================
-
-class DeliveryOrder(models.Model):
-    """
-    Delivery demand order: generated per date + meal time.
-    """
-    MEAL_CHOICES = (
-        ('B', 'Breakfast'),
-        ('L', 'Lunch'),
-        ('D', 'Dinner'),
-    )
-
-    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
-    target_date = models.DateField(verbose_name="Delivery Date")
-    meal_time = models.CharField(max_length=1, choices=MEAL_CHOICES, verbose_name="Meal Time")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        verbose_name = "Delivery Order"
-        unique_together = ('company', 'target_date', 'meal_time')
-
-    def __str__(self):
-        return f"DLV-{self.target_date}-{self.get_meal_time_display()}-{self.company.code}"
-
-
-class DeliveryItem(models.Model):
-    """
-    Delivery line item: number of servings per region per diet type.
-    """
-    delivery = models.ForeignKey(DeliveryOrder, on_delete=models.CASCADE, related_name='items')
-    region = models.ForeignKey(ClientCompanyRegion, on_delete=models.CASCADE, verbose_name="Region")
-    diet_category = models.ForeignKey(DietCategory, on_delete=models.CASCADE, verbose_name="Diet Type")
-    count = models.PositiveIntegerField(default=0, verbose_name="Servings")
-
-    class Meta:
-        verbose_name = "Delivery Item"
-
-    def __str__(self):
-        return f"{self.region.name}: {self.diet_category.name} x {self.count}"

@@ -1,0 +1,50 @@
+
+===== 1. [前置数据]: 各区域录入的订餐人数 (DailyCensus) =====
+  - 园区A : 标准套餐A x 120 份
+  - 园区A : 糖尿病餐 x 15 份
+  - 研发楼B : 标准套餐A x 85 份
+
+===== 2. [后台生成完毕]: DLV-2026-02-25-Lunch-TEST =====
+
+===== 3. [前端按区域展示接口 /api/delivery/{id}/by-region/ 返回效果] =====
+  [园区A] - 区域总计: 135 份
+    - 标准套餐A : 120 份
+    - 糖尿病餐 : 15 份
+  [研发楼B] - 区域总计: 85 份
+    - 标准套餐A : 85 份
+
+===== 4. [打印导出接口 /api/delivery/{id}/export/ 返回 JSON 数据] =====
+{
+  "title": "每日送餐统计表",
+  "company": "Test Company",
+  "date": "2026-02-25",
+  "meal_time": "Lunch",
+  "regions": [
+    {
+      "region": "园区A",
+      "diets": [
+        {
+          "diet_category": "标准套餐A",
+          "count": 120
+        },
+        {
+          "diet_category": "糖尿病餐",
+          "count": 15
+        }
+      ],
+      "total_count": 135
+    },
+    {
+      "region": "研发楼B",
+      "diets": [
+        {
+          "diet_category": "标准套餐A",
+          "count": 85
+        }
+      ],
+      "total_count": 85
+    }
+  ],
+  "grand_total": 220
+}
+=====================================

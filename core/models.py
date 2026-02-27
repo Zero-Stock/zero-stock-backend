@@ -48,16 +48,6 @@ class UserProfile(models.Model):
         verbose_name_plural = "User Profiles"
 
 # Diet Data
-class Unit(models.Model):
-    """
-    Measurement units (e.g., kg, g, L, case).
-    """
-    name = models.CharField(max_length=20, unique=True, verbose_name="Unit Name")
-
-    def __str__(self):
-        return self.name
-
-
 class DietCategory(models.Model):
     """
     Classifies the type of set meal (e.g., Standard A, Diabetic, Soft Food).
@@ -72,20 +62,25 @@ class DietCategory(models.Model):
         verbose_name_plural = "Diet Categories"
 
 
+class MaterialCategory(models.Model):
+    """原料分类（如 鲜品、冻品）"""
+    name = models.CharField(max_length=50, unique=True, verbose_name="分类名称")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "原料分类"
+        verbose_name_plural = "原料分类"
+
+
 class RawMaterial(models.Model):
     """
     The base ingredient purchased from suppliers (Gross Material).
-    Example: 'Potato (Raw/Unwashed)'
+    Internal unit is always kg.
     """
-    CATEGORY_CHOICES = (
-        ('VEG', 'Vegetables'), ('MEAT', 'Meat/Poultry'),
-        ('GRAIN', 'Grains'), ('COND', 'Condiments'), ('OTHER', 'Others')
-    )
     name = models.CharField(max_length=100, unique=True, verbose_name="Material Name")
-    category = models.CharField(max_length=10, choices=CATEGORY_CHOICES, verbose_name="Category")
-    default_unit = models.ForeignKey(Unit, on_delete=models.SET_NULL, null=True, verbose_name="Purchase Unit")
-    supplier = models.CharField(max_length=100, blank=True, default="", verbose_name="Supplier")
-    spec = models.CharField(max_length=100, blank=True, default="", verbose_name="Spec/Package")
+    category = models.ForeignKey(MaterialCategory, on_delete=models.PROTECT, verbose_name="Category")
 
     def __str__(self):
         return self.name
@@ -119,9 +114,12 @@ class Dish(models.Model):
     Represents a specific dish (e.g., 'Tomato Beef Stew').
     """
     name = models.CharField(max_length=100, unique=True, verbose_name="Dish Name")
+    seasonings = models.TextField(blank=True, default="", verbose_name="调料",
+                                   help_text="如: 盐、酱油、料酒")
+    cooking_method = models.TextField(blank=True, default="", verbose_name="制作工艺",
+                                       help_text="如: 先炒后炖，大火收汁")
 
     # A dish might be suitable for multiple diets (e.g., Standard AND Diabetic)
-    # This allows flexible classification.
     allowed_diets = models.ManyToManyField(DietCategory, blank=True, verbose_name="Suitable for Diets")
 
     def __str__(self):
@@ -133,19 +131,67 @@ class Dish(models.Model):
 
 class DishIngredient(models.Model):
     """
-    [The Recipe] Connects a Dish to a ProcessedMaterial with a specific Net Quantity.
+    [The Recipe] 菜谱配方行：每个原料对应重量和可选的处理方法。
     """
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, related_name='ingredients')
 
-    # Critical: We link to the PROCESSED material (Net), not the raw one.
-    material = models.ForeignKey(ProcessedMaterial, on_delete=models.PROTECT, verbose_name="Ingredient (Net)")
+    # 直接关联原料
+    raw_material = models.ForeignKey(RawMaterial, on_delete=models.PROTECT, verbose_name="原料")
+
+    # 可选的处理方法（含出成率）
+    processing = models.ForeignKey(
+        ProcessedMaterial, on_delete=models.SET_NULL,
+        null=True, blank=True, verbose_name="处理方法",
+        help_text="可选。若选择了处理方法，系统会自动使用对应的出成率。"
+    )
 
     net_quantity = models.DecimalField(
         max_digits=8, decimal_places=3,
-        verbose_name="Net Qty per Serving",
-        help_text="The weight AFTER processing (usually in kg or g)."
+        verbose_name="重量(每份)",
+        help_text="每份用量，单位与原料一致（通常为 kg）。"
     )
 
     def __str__(self):
-        return f"{self.dish.name} uses {self.material}"
-    
+        method = f" [{self.processing.method_name}]" if self.processing else ""
+        return f"{self.dish.name} - {self.raw_material.name}{method}"
+
+
+# Suppliers
+class Supplier(models.Model):
+    """
+    Supplier entity. Tracks vendor contact info.
+    """
+    name = models.CharField(max_length=100, unique=True, verbose_name="Supplier Name")
+    contact_person = models.CharField(max_length=50, blank=True, default="", verbose_name="Contact Person")
+    phone = models.CharField(max_length=30, blank=True, default="", verbose_name="Phone")
+    address = models.CharField(max_length=200, blank=True, default="", verbose_name="Address")
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Supplier"
+        verbose_name_plural = "Suppliers"
+
+
+class SupplierMaterial(models.Model):
+    """
+    供应商供货规格：哪个供应商提供哪种原料，以什么规格和价格。
+    """
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="materials")
+    raw_material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE, related_name="suppliers")
+    unit_name = models.CharField(max_length=20, default='kg', verbose_name="销售单位",
+                                  help_text="如: 箱, 袋, 盒, kg")
+    kg_per_unit = models.DecimalField(max_digits=10, decimal_places=2, default=1.00,
+                                      verbose_name="每单位kg数",
+                                      help_text="如: 1箱=10kg 则填 10")
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True,
+                                verbose_name="单价(每供应商单位)")
+    notes = models.TextField(blank=True, verbose_name="Notes")
+
+    class Meta:
+        unique_together = ('supplier', 'raw_material')
+        verbose_name = "Supplier Material"
+
+    def __str__(self):
+        return f"{self.supplier.name} - {self.raw_material.name} ({self.unit_name})"

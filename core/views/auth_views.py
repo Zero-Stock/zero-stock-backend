@@ -55,3 +55,24 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(build_user_payload(request.user))
+
+
+class LogoutView(APIView):
+    """
+    POST /api/auth/logout/
+    body: { "refresh": "<refresh_token>" }
+    Blacklists the refresh token so it can no longer be used.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = request.data.get("refresh")
+        if not refresh:
+            return Response({"error": "refresh token required"}, status=400)
+        try:
+            token = RefreshToken(refresh)
+            token.blacklist()
+        except Exception:
+            pass  # Token may already be blacklisted or invalid
+        return Response({"detail": "Logged out."}, status=200)

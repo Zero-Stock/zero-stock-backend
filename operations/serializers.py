@@ -1,7 +1,13 @@
 # operations/serializers.py
 from rest_framework import serializers
-from .models import ClientCompanyRegion, DailyCensus
-from .models import ProcurementRequest, ProcurementItem
+from .models import (
+    ClientCompanyRegion, DailyCensus, WeeklyMenu,
+    ProcurementRequest, ProcurementItem,
+    ReceivingRecord, ReceivingItem,
+    ProcessingOrder, ProcessingItem,
+    DeliveryOrder, DeliveryItem
+)
+
 
 class RegionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -64,13 +70,11 @@ class DailyCensusBatchSerializer(serializers.Serializer):
                 )
             seen.add(key)
         return items
-    
+
 class ProcurementItemSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.CharField(source="raw_material.name", read_only=True)
-    unit = serializers.CharField(source="raw_material.default_unit.name", read_only=True)
-    spec = serializers.CharField(source="raw_material.spec", read_only=True)
-    supplier = serializers.CharField(source="raw_material.supplier", read_only=True)
-    category = serializers.CharField(source="raw_material.category", read_only=True)
+    category = serializers.CharField(source="raw_material.category.name", read_only=True)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
 
     class Meta:
         model = ProcurementItem
@@ -78,11 +82,15 @@ class ProcurementItemSerializer(serializers.ModelSerializer):
             "id",
             "raw_material",
             "raw_material_name",
-            "total_gross_quantity",
-            "unit",
-            "spec",
-            "supplier",
             "category",
+            "total_gross_quantity",
+            "am_quantity",
+            "pm_quantity",
+            "supplier",
+            "supplier_name",
+            "supplier_unit_name",
+            "supplier_unit_qty",
+            "supplier_price",
             "notes",
         ]
 
@@ -101,9 +109,158 @@ class ProcurementRequestSerializer(serializers.ModelSerializer):
             "items",
         ]
         read_only_fields = ["id", "company", "status", "created_at", "items"]
-    
-from rest_framework import serializers
+
 class ProcurementGenerateSerializer(serializers.Serializer):
     date = serializers.DateField()
 
 
+# ---- Weekly Menu ----
+
+class WeeklyMenuSerializer(serializers.ModelSerializer):
+    diet_category_name = serializers.CharField(source='diet_category.name', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    day_display = serializers.CharField(source='get_day_of_week_display', read_only=True)
+    meal_display = serializers.CharField(source='get_meal_time_display', read_only=True)
+    dish_names = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WeeklyMenu
+        fields = [
+            "id", "company", "company_name",
+            "diet_category", "diet_category_name",
+            "day_of_week", "day_display",
+            "meal_time", "meal_display",
+            "dishes", "dish_names",
+        ]
+
+    def get_dish_names(self, obj):
+        return [d.name for d in obj.dishes.all()]
+
+
+class WeeklyMenuBatchItemSerializer(serializers.Serializer):
+    company = serializers.IntegerField()
+    diet_category = serializers.IntegerField()
+    day_of_week = serializers.IntegerField()
+    meal_time = serializers.CharField()
+    dishes = serializers.ListField(child=serializers.IntegerField())
+
+
+class WeeklyMenuBatchSerializer(serializers.Serializer):
+    menus = WeeklyMenuBatchItemSerializer(many=True)
+
+    def create(self, validated_data):
+        from core.models import Dish
+        results = []
+        for item in validated_data['menus']:
+            menu, _ = WeeklyMenu.objects.update_or_create(
+                company_id=item['company'],
+                diet_category_id=item['diet_category'],
+                day_of_week=item['day_of_week'],
+                meal_time=item['meal_time'],
+            )
+            dishes = Dish.objects.filter(id__in=item['dishes'])
+            menu.dishes.set(dishes)
+            results.append(menu)
+        return results
+
+
+# ---- Receiving ----
+
+class ReceivingItemSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.CharField(source="raw_material.name", read_only=True)
+    unit = serializers.CharField(source="raw_material.unit", read_only=True)
+    spec = serializers.CharField(source="raw_material.spec", read_only=True)
+    difference = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReceivingItem
+        fields = [
+            "id", "raw_material", "raw_material_name",
+            "expected_quantity", "actual_quantity",
+            "unit", "spec", "difference", "notes",
+        ]
+
+    def get_difference(self, obj):
+        return float(obj.actual_quantity - obj.expected_quantity)
+
+
+class ReceivingRecordSerializer(serializers.ModelSerializer):
+    items = ReceivingItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ReceivingRecord
+        fields = ["id", "procurement", "company", "received_date", "status", "notes", "items"]
+        read_only_fields = ["id", "company", "received_date"]
+
+
+class ReceivingCreateSerializer(serializers.Serializer):
+    """For POST /api/receiving/ - record actual received quantities"""
+    procurement_id = serializers.IntegerField()
+    items = serializers.ListField(child=serializers.DictField())
+    notes = serializers.CharField(required=False, default="")
+
+
+# ---- Processing ----
+
+class ProcessingItemSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.CharField(source="raw_material.name", read_only=True)
+    method_name = serializers.SerializerMethodField()
+    dish_name = serializers.CharField(source="dish.name", read_only=True)
+
+    class Meta:
+        model = ProcessingItem
+        fields = [
+            "id", "raw_material", "raw_material_name",
+            "processed_material", "method_name",
+            "dish", "dish_name",
+            "net_quantity", "gross_quantity",
+        ]
+
+    def get_method_name(self, obj):
+        return obj.processed_material.method_name if obj.processed_material else None
+
+
+class ProcessingOrderSerializer(serializers.ModelSerializer):
+    items = ProcessingItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProcessingOrder
+        fields = ["id", "company", "target_date", "status", "created_at", "items"]
+        read_only_fields = ["id", "company", "status", "created_at"]
+
+
+class ProcessingGenerateSerializer(serializers.Serializer):
+    date = serializers.DateField()
+
+
+# ---- Delivery ----
+
+class DeliveryItemSerializer(serializers.ModelSerializer):
+    region_name = serializers.CharField(source="region.name", read_only=True)
+    diet_category_name = serializers.CharField(source="diet_category.name", read_only=True)
+
+    class Meta:
+        model = DeliveryItem
+        fields = [
+            "id", "region", "region_name",
+            "diet_category", "diet_category_name", "count",
+        ]
+
+
+class DeliveryOrderSerializer(serializers.ModelSerializer):
+    items = DeliveryItemSerializer(many=True, read_only=True)
+    meal_display = serializers.CharField(source="get_meal_time_display", read_only=True)
+
+    class Meta:
+        model = DeliveryOrder
+        fields = [
+            "id", "company", "target_date",
+            "meal_time", "meal_display",
+            "created_at", "items",
+        ]
+        read_only_fields = ["id", "company", "created_at"]
+
+
+class DeliveryGenerateSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    meal_time = serializers.ChoiceField(choices=['B', 'L', 'D'])
