@@ -142,9 +142,38 @@
 
 ## 基础数据 APIs
 
-### 6. 餐食类型（套餐）管理
+### 6. 原料分类管理
 
-#### 6.1 获取套餐列表
+#### 6.1 获取分类列表
+
+**GET** `/api/material-categories/`
+
+**响应示例：**
+```json
+[
+    {"id": 1, "name": "鲜品"},
+    {"id": 2, "name": "冻品"},
+    {"id": 3, "name": "粮油"}
+]
+```
+
+#### 6.2 创建/修改/删除分类
+
+**POST** `/api/material-categories/`
+
+```json
+{"name": "调味品"}
+```
+
+**PUT/PATCH** `/api/material-categories/{id}/`
+
+**DELETE** `/api/material-categories/{id}/`
+
+---
+
+### 7. 餐食类型（套餐）管理
+
+#### 7.1 获取套餐列表
 
 **GET** `/api/diets/`
 
@@ -157,7 +186,7 @@
 ]
 ```
 
-#### 6.2 创建/修改套餐
+#### 7.2 创建/修改套餐
 
 **POST** `/api/diets/`
 
@@ -167,11 +196,11 @@
 
 **PUT/PATCH** `/api/diets/{id}/`
 
-#### 6.3 获取套餐下的菜品
+#### 7.3 获取套餐下的菜品
 
 **GET** `/api/diets/{id}/dishes/`
 
-#### 6.4 批量为套餐分配菜品
+#### 7.4 批量为套餐分配菜品
 
 **POST** `/api/diets/{id}/dishes/`
 
@@ -184,17 +213,17 @@
 
 ---
 
-### 7. 食材管理
+### 8. 食材管理
 
-#### 7.1 食材列表（支持搜索、筛选、排序、分组）
+#### 8.1 食材列表（支持搜索、筛选、排序、分组）
 
 **GET** `/api/materials/`
 
 **查询参数：**
 - `search`: 按名称搜索，例如 `?search=土豆`
-- `category`: 按类别筛选，例如 `?category=冻品`
-- `ordering`: 排序（支持 `id`、`name`、`category`、`unit`），前加 `-` 倒序，例如 `?ordering=-name`
-- `group_by`: 分组返回（支持 `category`、`unit`），例如 `?group_by=category`
+- `category`: 按分类ID筛选，例如 `?category=1`
+- `ordering`: 排序（支持 `id`、`name`），前加 `-` 倒序，例如 `?ordering=-name`
+- `group_by`: 分组返回（支持 `category`），例如 `?group_by=category`
 
 **响应示例：**
 ```json
@@ -206,10 +235,8 @@
         {
             "id": 1,
             "name": "土豆",
-            "category": "鲜品",
-            "unit": "kg",
-            "supplier": "张三蔬菜",
-            "spec": "",
+            "category": 1,
+            "category_name": "鲜品",
             "specs": [
                 {
                     "id": 1,
@@ -223,14 +250,13 @@
 ```
 
 **说明：**
-- `unit` 为字符串字段，支持灵活格式如 `kg`、`{箱:10kg}`、`{袋:25kg}`
-- `supplier` 为供应商名称字符串
-- `spec` 为规格/包装说明
+- `category` 为原料分类的 ID（关联 MaterialCategory 表）
+- `category_name` 为分类名称（只读）
 - `specs` 为该食材的加工规格列表
 
 ---
 
-#### 7.2 获取单个食材详情
+#### 8.2 获取单个食材详情
 
 **GET** `/api/materials/{id}/`
 
@@ -238,7 +264,7 @@
 
 ---
 
-#### 7.3 删除食材
+#### 8.3 删除食材
 
 **DELETE** `/api/materials/{id}/`
 
@@ -246,22 +272,23 @@
 
 ---
 
-#### 7.4 批量添加/修改食材
+#### 8.4 批量添加/修改食材
 
 **POST** `/api/materials/batch/`
 
 **请求体（JSON 数组）：**
 ```json
 [
-    {"name": "带鱼", "category": "冻品", "unit": "{箱:10kg}"},
-    {"name": "大米", "category": "粮油", "unit": "{袋:25kg}"},
-    {"id": 1, "name": "番茄（更新）", "category": "鲜品", "unit": "kg"}
+    {"name": "带鱼", "category": 2},
+    {"name": "大米", "category": 3},
+    {"id": 1, "name": "番茄（更新）", "category": 1}
 ]
 ```
 
 **规则：**
 - 有 `id` → 更新已有记录
 - 无 `id` → 创建新记录
+- `category` 为 MaterialCategory 的 ID
 
 **响应示例：**
 ```json
@@ -275,7 +302,7 @@
 
 ---
 
-#### 7.5 为食材添加加工规格
+#### 8.5 为食材添加加工规格
 
 **POST** `/api/materials/{id}/specs/`
 
@@ -297,7 +324,7 @@
 
 ## 菜品与配方 APIs
 
-### 8. 菜品列表（支持搜索）
+### 9. 菜品列表（支持搜索）
 
 **GET** `/api/dishes/`
 
@@ -312,18 +339,25 @@
         {
             "id": 1,
             "name": "番茄牛腩",
-            "allowed_diets": [1, 2],
+            "seasonings": "盐、酱油、料酒",
+            "cooking_method": "先炒后炖，大火收汁",
             "ingredients": [
                 {
                     "id": 1,
-                    "material": 1,
-                    "material_name": "牛肉 [切块] (Yield: 0.95)",
+                    "raw_material": 1,
+                    "raw_material_name": "牛肉",
+                    "processing": 1,
+                    "processing_name": "切块",
+                    "yield_rate": 0.95,
                     "net_quantity": "0.150"
                 },
                 {
                     "id": 2,
-                    "material": 2,
-                    "material_name": "番茄 [切块] (Yield: 0.90)",
+                    "raw_material": 2,
+                    "raw_material_name": "番茄",
+                    "processing": 2,
+                    "processing_name": "切块",
+                    "yield_rate": 0.90,
                     "net_quantity": "0.100"
                 }
             ]
@@ -333,13 +367,17 @@
 ```
 
 **说明：**
-- `material` 字段是 `ProcessedMaterial` 的 ID（加工规格 ID）
-- `material_name` 显示格式为 `原料名称 [加工方法] (Yield: 出成率)`
+- `raw_material` 字段是 `RawMaterial` 的 ID
+- `processing` 字段是 `ProcessedMaterial` 的 ID（可选，为 null 表示无加工）
+- `processing_name` 显示加工方法名称
+- `yield_rate` 显示该加工方法的出成率
+- `seasonings` 调料信息
+- `cooking_method` 制作工艺
 - `ingredients` 为只读字段
 
 ---
 
-### 9. 创建菜品及配方（嵌套创建）
+### 10. 创建菜品及配方（嵌套创建）
 
 **POST** `/api/dishes/`
 
@@ -347,14 +385,17 @@
 ```json
 {
     "name": "番茄牛腩",
-    "allowed_diets": [1, 2],
+    "seasonings": "盐、酱油、料酒",
+    "cooking_method": "先炒后炖，大火收汁",
     "ingredients_write": [
         {
-            "material": 1,
+            "raw_material": 1,
+            "processing": 1,
             "net_quantity": "0.150"
         },
         {
-            "material": 2,
+            "raw_material": 2,
+            "processing": 2,
             "net_quantity": "0.100"
         }
     ]
@@ -362,15 +403,18 @@
 ```
 
 **说明：**
-- `material`: 加工规格的 ID（ProcessedMaterial 的 ID，不是 RawMaterial）
-- `net_quantity`: 每份菜品需要的净重量（加工后的量）
+- `raw_material`: RawMaterial 的 ID
+- `processing`: ProcessedMaterial 的 ID（可选，可为 null）
+- `net_quantity`: 每份菜品需要的净重量（kg）
 - `ingredients_write`: 只写字段，用于创建/更新配方
+- `seasonings`: 调料说明（可选）
+- `cooking_method`: 制作工艺说明（可选）
 
 **响应：** 201 Created，返回创建的菜品及配方详情
 
 ---
 
-### 10. 获取菜品详情
+### 11. 获取菜品详情
 
 **GET** `/api/dishes/{id}/`
 
@@ -378,7 +422,7 @@
 
 ---
 
-### 11. 更新菜品及配方
+### 12. 更新菜品及配方
 
 **PUT/PATCH** `/api/dishes/{id}/`
 
@@ -386,13 +430,16 @@
 ```json
 {
     "name": "番茄牛腩（改良版）",
+    "seasonings": "盐、酱油、料酒、白糖",
     "ingredients_write": [
         {
-            "material": 1,
+            "raw_material": 1,
+            "processing": 1,
             "net_quantity": "0.200"
         },
         {
-            "material": 2,
+            "raw_material": 2,
+            "processing": 2,
             "net_quantity": "0.120"
         }
     ]
@@ -405,7 +452,7 @@
 
 ---
 
-### 12. 删除菜品
+### 13. 删除菜品
 
 **DELETE** `/api/dishes/{id}/`
 
@@ -413,9 +460,33 @@
 
 ---
 
+### 14. 获取菜品打印格式 ⭐
+
+**GET** `/api/dishes/print/`
+
+获取所有菜品的打印友好格式，适合导出菜谱。
+
+**响应示例：**
+```json
+[
+    {
+        "id": 1,
+        "name": "番茄牛腩",
+        "ingredients_text": "牛肉[切块]150g、番茄[切块]100g",
+        "seasonings": "盐、酱油、料酒",
+        "cooking_method": "先炒后炖，大火收汁"
+    }
+]
+```
+
+**说明：**
+- `ingredients_text`：将配方格式化为字符串，格式为 `原料名[加工方法]克重`
+
+---
+
 ## 周菜单配置 APIs
 
-### 13. 查询周菜单
+### 15. 查询周菜单
 
 **GET** `/api/weekly-menus/`
 
@@ -454,7 +525,7 @@
 
 ---
 
-### 14. 创建单个菜单配置
+### 16. 创建单个菜单配置
 
 **POST** `/api/weekly-menus/`
 
@@ -473,11 +544,11 @@
 
 ---
 
-### 15. 批量创建/更新周菜单 ⭐
+### 17. 批量创建/更新周菜单 ⭐
 
 **POST** `/api/weekly-menus/batch/`
 
-**请求体（JSON 数组）：**
+**请求体（JSON 数组，注意外层无需包裹）：**
 ```json
 [
     {
@@ -501,21 +572,7 @@
 ```json
 {
     "message": "成功处理 2 条菜单配置",
-    "data": [
-        {
-            "id": 1,
-            "company": 1,
-            "company_name": "XX医院",
-            "diet_category": 1,
-            "diet_category_name": "标准套餐A",
-            "day_of_week": 1,
-            "day_display": "Monday",
-            "meal_time": "L",
-            "meal_display": "Lunch",
-            "dishes": [1, 2, 3],
-            "dish_names": ["番茄牛腩", "清炒菠菜", "米饭"]
-        }
-    ]
+    "data": [...]
 }
 ```
 
@@ -526,7 +583,7 @@
 
 ---
 
-### 16. 更新/删除单个菜单配置
+### 18. 更新/删除单个菜单配置
 
 **PUT/PATCH** `/api/weekly-menus/{id}/`
 
@@ -545,7 +602,7 @@
 
 > 以下接口均需要认证 🔒，数据自动按用户所属公司隔离。
 
-### 17. 获取每日人数统计 🔒
+### 19. 获取每日人数统计 🔒
 
 **GET** `/api/census/`
 
@@ -573,7 +630,7 @@
 
 ---
 
-### 18. 批量录入每日人数 🔒
+### 20. 批量录入每日人数 🔒
 
 **POST** `/api/census/batch/`
 
@@ -604,7 +661,7 @@
 
 ---
 
-### 19. 按日期汇总统计 🔒
+### 21. 按日期汇总统计 🔒
 
 **GET** `/api/census/summary/`
 
@@ -640,8 +697,12 @@
 
 > 以下接口均需要认证 🔒，数据自动按用户所属公司隔离。
 > 生成和确认操作需要 RW（Read/Write）权限。
+>
+> **两步式采购流程：**
+> 1. **生成采购量**（`generate`）：根据人数+菜单自动计算公斤级采购量，状态变为 `PENDING`
+> 2. **分配供应商**（`template` + `assign-suppliers`）：查看可选供应商，分配后自动计算供应商单位数量并确认
 
-### 20. 生成采购单 🔒🔑RW
+### 22. 生成采购单 🔒🔑RW
 
 **POST** `/api/procurement/generate/`
 
@@ -655,27 +716,38 @@
 **说明：**
 - 根据日期查找 Census（人数） + WeeklyMenu/DailyMenu（菜单） + 配方自动计算采购量
 - 自动拆分 AM（早餐+午餐）和 PM（晚餐）用量
-- 如果该日期已有 DRAFT 采购单则重新生成覆盖，CONFIRMED 状态不可重新生成
+- 如果该日期已有非 CONFIRMED 采购单则重新生成覆盖
+- CONFIRMED 状态不可重新生成
+- 生成后状态为 `PENDING`（等待分配供应商）
 
 **响应：** 201 Created，返回采购单详情
 
 ---
 
-### 21. 获取采购单列表 🔒
+### 23. 获取采购单列表 🔒
 
 **GET** `/api/procurement/`
 
 返回当前公司的采购单列表，按日期倒序。
 
+**响应中每个采购单包含：**
+- `id`, `company`, `target_date`, `status`, `created_at`
+- `items`: 采购明细列表
+
+**采购单状态说明：**
+- `DRAFT`: 草稿（计算中）
+- `PENDING`: 等待供应商选择
+- `CONFIRMED`: 已确认（已发送）
+
 ---
 
-### 22. 查看采购单详情 🔒
+### 24. 查看采购单详情 🔒
 
 **GET** `/api/procurement/{id}/`
 
 ---
 
-### 23. 获取采购明细 🔒
+### 25. 获取采购明细 🔒
 
 **GET** `/api/procurement/{id}/items/`
 
@@ -683,13 +755,105 @@
 - `group_by=supplier`: 按供应商分组汇总
 - `group_by=category`: 按品类分组汇总
 
+**明细字段说明：**
+```json
+{
+    "id": 1,
+    "raw_material": 1,
+    "raw_material_name": "土豆",
+    "category": "鲜品",
+    "total_gross_quantity": "17.50",
+    "am_quantity": "12.50",
+    "pm_quantity": "5.00",
+    "supplier": null,
+    "supplier_name": null,
+    "supplier_unit_name": "",
+    "supplier_unit_qty": null,
+    "supplier_price": null,
+    "notes": "..."
+}
+```
+
 ---
 
-### 24. 获取采购单打印表格数据 ⭐🔒
+### 26. 获取采购模板（第一步：查看可选供应商） ⭐🔒
+
+**GET** `/api/procurement/template/?date=2026-02-27`
+
+用于查看每种原料的公斤级采购量及可分配的供应商列表。
+
+**响应示例：**
+```json
+{
+    "id": 1,
+    "date": "2026-02-27",
+    "status": "PENDING",
+    "items": [
+        {
+            "item_id": 101,
+            "raw_material_id": 1,
+            "raw_material_name": "土豆",
+            "category": "鲜品",
+            "total_kg": 17.5,
+            "am_kg": 12.5,
+            "pm_kg": 5.0,
+            "current_supplier_id": null,
+            "available_suppliers": [
+                {
+                    "supplier_material_id": 10,
+                    "supplier_id": 1,
+                    "supplier_name": "张三蔬菜",
+                    "unit_name": "箱",
+                    "kg_per_unit": 10.0,
+                    "price": 35.0
+                },
+                {
+                    "supplier_material_id": 11,
+                    "supplier_id": 2,
+                    "supplier_name": "李四农产",
+                    "unit_name": "kg",
+                    "kg_per_unit": 1.0,
+                    "price": 3.5
+                }
+            ]
+        }
+    ]
+}
+```
+
+---
+
+### 27. 分配供应商（第二步：分配并确认） ⭐🔒🔑RW
+
+**POST** `/api/procurement/assign-suppliers/?date=2026-02-27`
+
+为采购项分配供应商，系统自动计算供应商单位数量（如 17.5kg ÷ 10kg/箱 = 1.75 箱），分配完成后状态自动变为 `CONFIRMED`。
+
+**请求体：**
+```json
+{
+    "assignments": [
+        {"item_id": 101, "supplier_material_id": 10},
+        {"item_id": 102, "supplier_material_id": 15}
+    ]
+}
+```
+
+**说明：**
+- `item_id`: ProcurementItem 的 ID
+- `supplier_material_id`: SupplierMaterial 的 ID（从 template 接口获取）
+- 系统自动计算 `supplier_unit_qty = total_kg / kg_per_unit`
+- 分配成功后采购单状态自动变为 `CONFIRMED`
+
+**响应：** 返回更新后的完整采购单
+
+---
+
+### 28. 获取采购单打印表格数据 ⭐🔒
 
 **GET** `/api/procurement/{id}/sheet/`
 
-用于前端渲染带 AM/PM 拆分的采购申请及验收单表格。
+用于前端渲染含供应商单位信息的最终采购申请表格。
 
 **响应示例：**
 ```json
@@ -698,40 +862,47 @@
     "date": "2026-02-25",
     "day_of_week": "周三",
     "company": "XX医院",
-    "status": "DRAFT",
+    "status": "CONFIRMED",
     "items": [
         {
             "name": "土豆",
-            "spec": "",
-            "unit": "kg",
-            "am": 12.5,
-            "pm": 5.0,
-            "total": 17.5
+            "category": "鲜品",
+            "total_kg": 17.5,
+            "am_kg": 12.5,
+            "pm_kg": 5.0,
+            "supplier": "张三蔬菜",
+            "supplier_unit_name": "箱",
+            "supplier_unit_qty": 1.75,
+            "supplier_price": 35.0
         },
         {
             "name": "猪肉",
-            "spec": "去皮去骨",
-            "unit": "{箱:10kg}",
-            "am": 8.0,
-            "pm": 0.0,
-            "total": 8.0
+            "category": "冻品",
+            "total_kg": 8.0,
+            "am_kg": 8.0,
+            "pm_kg": 0.0,
+            "supplier": null,
+            "supplier_unit_name": null,
+            "supplier_unit_qty": null,
+            "supplier_price": null
         }
     ]
 }
 ```
 
 **说明：**
-- 数据已经按照原料维度汇总
-- `am` 字段表示该原料在早、午餐（B/L）制作中所需消耗的总毛重
-- `pm` 字段表示该原料在晚餐（D）制作中所需消耗的总毛重
+- 数据已经按照原料维度汇总，并按分类+名称排序
+- `total_kg`/`am_kg`/`pm_kg` 为公斤级重量
+- `supplier*` 字段在分配供应商之前为 null
+- 分配供应商后显示供应商名称、单位名、换算后的数量和单价
 
 ---
 
-### 25. 确认采购单 🔒🔑RW
+### 29. 确认采购单 🔒🔑RW
 
 **POST** `/api/procurement/{id}/confirm/`
 
-将采购单状态从 DRAFT 改为 CONFIRMED。
+将采购单状态改为 CONFIRMED（也可通过 `assign-suppliers` 自动确认）。
 
 **响应示例：**
 ```json
@@ -745,7 +916,7 @@
 
 ## 收货清单 APIs
 
-### 26. 获取收货验收模板
+### 30. 获取收货验收模板
 
 **GET** `/api/receiving/{procurement_id}/template/`
 
@@ -763,9 +934,6 @@
             "raw_material_id": 1,
             "raw_material_name": "土豆",
             "expected_quantity": 17.5,
-            "unit": "kg",
-            "spec": "",
-            "supplier": "张三蔬菜",
             "category": "鲜品",
             "actual_quantity": 0
         }
@@ -775,7 +943,7 @@
 
 ---
 
-### 27. 录入实际收货记录
+### 31. 录入实际收货记录
 
 **POST** `/api/receiving/`
 
@@ -795,7 +963,7 @@
 
 ---
 
-### 28. 查看收货详情
+### 32. 查看收货详情
 
 **GET** `/api/receiving/{id}/`
 
@@ -808,7 +976,7 @@
 
 ## 加工需求清单 APIs
 
-### 29. 生成加工清单
+### 33. 生成加工清单
 
 **POST** `/api/processing/generate/`
 
@@ -825,13 +993,13 @@
 
 ---
 
-### 30. 查看加工清单详情
+### 34. 查看加工清单详情
 
 **GET** `/api/processing/{id}/`
 
 ---
 
-### 31. 按原料维度查看
+### 35. 按原料维度查看
 
 **GET** `/api/processing/{id}/by-material/`
 
@@ -863,7 +1031,7 @@
 
 ---
 
-### 32. 按菜品维度查看
+### 36. 按菜品维度查看
 
 **GET** `/api/processing/{id}/by-dish/`
 
@@ -886,7 +1054,7 @@
 
 ---
 
-### 33. 按车间/类别分组
+### 37. 按车间/类别分组
 
 **GET** `/api/processing/{id}/by-workshop/`
 
@@ -912,7 +1080,7 @@
 
 ## 菜品制作（配方查看）APIs
 
-### 34. 获取当日制作任务
+### 38. 获取当日制作任务
 
 **GET** `/api/cooking/today/`
 
@@ -951,7 +1119,7 @@
 
 ---
 
-### 35. 查看单道菜的完整配方
+### 39. 查看单道菜的完整配方
 
 **GET** `/api/cooking/recipe/{dish_id}/`
 
@@ -991,7 +1159,7 @@
 
 ## 送餐需求表 APIs
 
-### 36. 生成送餐分派表
+### 40. 生成送餐分派表
 
 **POST** `/api/delivery/generate/`
 
@@ -1009,13 +1177,13 @@
 
 ---
 
-### 37. 查看送餐需求详情
+### 41. 查看送餐需求详情
 
 **GET** `/api/delivery/{id}/`
 
 ---
 
-### 38. 按区域分组视图
+### 42. 按区域分组视图
 
 **GET** `/api/delivery/{id}/by-region/`
 
@@ -1035,7 +1203,7 @@
 
 ---
 
-### 39. 获取送餐打单数据 ⭐
+### 43. 获取送餐打单数据 ⭐
 
 **GET** `/api/delivery/{id}/export/`
 
@@ -1073,12 +1241,36 @@
 
 ## 供应商管理 APIs
 
-### 40. 供应商列表与创建
+### 44. 供应商列表与创建
 
 **GET** `/api/suppliers/`
 
 **查询参数：**
 - `search`: 按名称搜索，例如 `?search=张三`
+
+**响应示例：**
+```json
+[
+    {
+        "id": 1,
+        "name": "张三蔬菜批发",
+        "contact_person": "张三",
+        "phone": "13800138000",
+        "address": "某某路123号",
+        "materials": [
+            {
+                "id": 1,
+                "raw_material": 1,
+                "raw_material_name": "土豆",
+                "unit_name": "箱",
+                "kg_per_unit": "10.00",
+                "price": "35.00",
+                "notes": "优质供应"
+            }
+        ]
+    }
+]
+```
 
 **POST** `/api/suppliers/`
 
@@ -1094,13 +1286,13 @@
 
 ---
 
-### 41. 修改供应商
+### 45. 修改供应商
 
 **PUT/PATCH** `/api/suppliers/{id}/`
 
 ---
 
-### 42. 管理供应商可供应的原材料
+### 46. 管理供应商可供应的原材料
 
 #### 获取供应商原材料列表
 
@@ -1113,7 +1305,9 @@
         "id": 1,
         "raw_material": 1,
         "raw_material_name": "土豆",
-        "price": "3.50",
+        "unit_name": "箱",
+        "kg_per_unit": "10.00",
+        "price": "35.00",
         "notes": "优质供应"
     }
 ]
@@ -1127,10 +1321,18 @@
 ```json
 {
     "raw_material": 1,
-    "price": "3.50",
+    "unit_name": "箱",
+    "kg_per_unit": "10.00",
+    "price": "35.00",
     "notes": "优质供应"
 }
 ```
+
+**说明：**
+- `unit_name`: 供应商的销售单位（如 箱、袋、盒、kg）
+- `kg_per_unit`: 每个销售单位对应的公斤数（如 1箱=10kg 就填 10）
+- `price`: 每个销售单位的单价
+- 同一供应商不能重复添加同一原料
 
 ---
 
@@ -1138,10 +1340,10 @@
 
 ### Q1: ProcessedMaterial 和 RawMaterial 的区别？
 
-- **RawMaterial（原料）**：从供应商采购的原始食材，如"土豆"
+- **RawMaterial（原料）**：从供应商采购的原始食材，如"土豆"。内部计量统一使用公斤（kg）。
 - **ProcessedMaterial（加工规格）**：原料的加工方式及出成率，如"土豆-去皮切块-80%"
 
-配方中使用的是 ProcessedMaterial，因为需要知道加工损耗。
+配方中使用的是 RawMaterial + ProcessedMaterial 的组合，因为需要知道加工损耗。
 
 ### Q2: 为什么创建菜品时使用 `ingredients_write` 而不是 `ingredients`？
 
@@ -1174,6 +1376,19 @@
 ### Q6: 哪些接口需要认证？
 
 文档中标记 🔒 的接口需要在请求头中携带 JWT Token。标记 🔑RW 的接口还需要用户角色为 RW（管理员）。
+
+### Q7: 采购流程的三个状态是什么？
+
+- `DRAFT`: 草稿状态（计算中）
+- `PENDING`: 采购量已生成，等待分配供应商
+- `CONFIRMED`: 已确认（已分配供应商或手动确认）
+
+典型流程：`generate` → PENDING → `template`查看 → `assign-suppliers`确认 → CONFIRMED
+
+### Q8: 供应商单位换算怎么工作？
+
+供应商有自己的销售单位（如 箱、袋），通过 `kg_per_unit` 字段定义换算关系。
+例如：土豆供应商按"箱"销售，1箱=10kg，采购需要 17.5kg，则自动计算为 1.75 箱。
 
 ---
 

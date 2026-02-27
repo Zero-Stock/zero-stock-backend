@@ -4,6 +4,8 @@
 
 | 接口 | 方法 | 功能 |
 |------|------|------|
+| `/api/material-categories/` | GET/POST | 原料分类列表 / 创建分类 |
+| `/api/material-categories/{id}/` | PUT/PATCH/DELETE | 修改/删除原料分类 |
 | `/api/materials/` | GET | 获取原材料列表（支持搜索、排序、分类筛选、分组） |
 | `/api/materials/{id}/` | GET | 获取单个原材料详情（含加工规格） |
 | `/api/materials/{id}/` | DELETE | 删除原材料 |
@@ -29,6 +31,7 @@
 | `/api/dishes/{id}/` | GET | 获取菜品详情（含完整配方） |
 | `/api/dishes/{id}/` | PUT/PATCH | 修改菜品及配方 |
 | `/api/dishes/{id}/` | DELETE | 删除菜品 |
+| **`/api/dishes/print/`** | **GET** | **获取所有菜品的打印格式（含食材文本、调料、工艺）** |
 
 ### 四、周菜单配置
 
@@ -60,7 +63,7 @@
 
 ### 七、采购清单
 
-> 按"供应商/品类"的要货汇总单，包含毛重、规格、单位。
+> 采购流程分两步：第一步 `generate` 生成公斤级采购量（状态为 PENDING），第二步通过 `template` 查看可选供应商并用 `assign-suppliers` 分配供应商及其单位（自动确认）。
 > **附带早晚（AM/PM）时段重量拆分以适配采购表格需求。**
 
 | 接口 | 方法 | 功能 |
@@ -68,15 +71,17 @@
 | `/api/procurement/generate/` | POST | 根据日期+人数自动计算采购量（含 AM/PM 拆分） |
 | `/api/procurement/` | GET | 获取采购单列表 |
 | `/api/procurement/{id}/` | GET | 查看采购单详情（含明细行） |
-| `/api/procurement/{id}/items/` | GET | 获取明细（原料名、毛重、规格、单位） |
+| `/api/procurement/{id}/items/` | GET | 获取明细（原料名、毛重、AM/PM拆分） |
 | `/api/procurement/{id}/items/?group_by=supplier` | GET | 按供应商分组的要货汇总 |
 | `/api/procurement/{id}/items/?group_by=category` | GET | 按品类分组的要货汇总 |
-| **`/api/procurement/{id}/sheet/`** | **GET** | **获取专用于打单渲染的层次化分好类的采购单表结构（核心渲染接口）** |
+| **`/api/procurement/{id}/sheet/`** | **GET** | **获取含供应商单位信息的最终采购单（核心渲染接口）** |
+| `/api/procurement/template/` | GET | 获取采购模板（公斤级+可选供应商列表） |
+| `/api/procurement/assign-suppliers/` | POST | 为采购项分配供应商并自动计算供应商单位数量 |
 | `/api/procurement/{id}/confirm/` | POST | 确认采购单 |
 
 ### 八、收货清单
 
-> 预计到货验收模板：用于实际收货时核对（毛重、规格、单位）
+> 预计到货验收模板：用于实际收货时核对
 
 | 接口 | 方法 | 功能 |
 |------|------|------|
@@ -126,4 +131,4 @@
 |------|------|------|
 | `/api/suppliers/` | GET/POST | 供应商列表 / 添加供应商 |
 | `/api/suppliers/{id}/` | PUT/PATCH | 修改供应商信息 |
-| `/api/suppliers/{id}/materials/` | GET/POST | 管理该供应商可供应的原材料 |
+| `/api/suppliers/{id}/materials/` | GET/POST | 管理该供应商可供应的原材料（含销售单位、每单位kg数、单价） |
