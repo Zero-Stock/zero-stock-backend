@@ -139,12 +139,22 @@ class RawMaterialSerializer(serializers.ModelSerializer):
 # ---- Dishes & Recipes ----
 
 class DishIngredientSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
+    raw_material_name = serializers.CharField(
+        source='raw_material.name',
+        read_only=True
+    )
     processing_name = serializers.SerializerMethodField()
 
     class Meta:
         model = DishIngredient
-        fields = ["id", "raw_material", "raw_material_name", "processing", "yield_rate", "net_quantity"]
+        fields = [
+            "id",
+            "raw_material",
+            "raw_material_name",
+            "processing",
+            "processing_name",  
+            "net_quantity",
+        ]
 
     def get_processing_name(self, obj):
         return obj.processing.method_name if obj.processing else None
