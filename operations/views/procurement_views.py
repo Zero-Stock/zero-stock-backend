@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from decimal import Decimal
 from collections import defaultdict
-from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, DailyMenu
+from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu
 from core.models import DishIngredient, SupplierMaterial, RawMaterialYieldRate
 from ..serializers import ProcurementRequestSerializer, ProcurementItemSerializer, ProcurementGenerateSerializer
 

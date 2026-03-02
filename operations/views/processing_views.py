@@ -76,7 +76,7 @@ class ProcessingGenerateView(APIView):
                     for ingredient in dish.ingredients.all():
                         raw = ingredient.raw_material
                         processing = ingredient.processing
-                        net_qty = ingredient.net_quantity * headcount
+                        net_qty = ingredient.net_quantity * headcount * dish_qty
                         gross_qty = net_qty
 
                         ProcessingItem.objects.create(

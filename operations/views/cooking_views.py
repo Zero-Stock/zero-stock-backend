@@ -68,7 +68,7 @@ class CookingTodayView(APIView):
                     raw = ing.raw_material
                     processing = ing.processing
                     net_per_serving = ing.net_quantity
-                    net_total = net_per_serving * total_count if total_count else 0
+                    net_total = net_per_serving * total_count * dish_qty if total_count else 0
                     gross_total = net_total 
                     ingredients.append({
                         "material": raw.name,
