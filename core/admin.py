@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import ClientCompany, UserProfile, DietCategory, RawMaterial, ProcessedMaterial, Dish, DishIngredient, Supplier, SupplierMaterial, MaterialCategory
+from .models import ClientCompany, UserProfile, DietCategory, RawMaterial, RawMaterialYieldRate, ProcessedMaterial, Dish, DishIngredient, Supplier, SupplierMaterial, MaterialCategory
 
 
 # 1. Register ClientCompany so you can create companies first
@@ -45,6 +45,7 @@ admin.site.register(MaterialCategory)
 admin.site.register(DietCategory)
 admin.site.register(UserProfile)
 admin.site.register(RawMaterial)
+admin.site.register(RawMaterialYieldRate)
 admin.site.register(ProcessedMaterial)
 admin.site.register(Dish)
 admin.site.register(DishIngredient)

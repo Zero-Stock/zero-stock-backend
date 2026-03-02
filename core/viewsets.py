@@ -4,6 +4,7 @@ ViewSets for handling API business logic and HTTP request/response.
 from rest_framework import viewsets, status, filters, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db import transaction
 
 from .models import (
     DietCategory, RawMaterial, ProcessedMaterial,
@@ -153,60 +154,79 @@ class RawMaterialViewSet(mixins.ListModelMixin,
     @action(detail=False, methods=['post'], url_path='batch')
     def batch_save(self, request):
         """
-        批量添加或修改食材
-        
         POST /api/materials/batch/
-        请求体（JSON 数组）:
-        [
-            {"name": "带鱼", "category": "MEAT", "unit": "{箱:10kg}"},
-            {"name": "大米", "category": "GRAIN", "unit": "{袋:25kg}"},
-            {"id": 1, "name": "番茄", "category": "VEG", "unit": "kg"}
-        ]
-        
-        规则：
-        - 有 id → 更新已有记录
-        - 无 id → 创建新记录
+        Body: JSON array
+
+        Rules:
+        - If id provided -> update by id
+        - Else if name matches existing -> update that record
+        - Else -> create new
+
+        Notes:
+        - Specs is supported (nested) because RawMaterialSerializer has update().
+        - yield_rate is supported (write-only) and stored into RawMaterialYieldRate.
         """
         if not isinstance(request.data, list):
             return Response(
-                {'error': '请求体必须是 JSON 数组'},
+                {"error": "Request body must be a JSON array."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        created = []
-        updated = []
-        errors = []
+        created, updated, errors = [], [], []
 
         for index, item in enumerate(request.data):
-            item_id = item.get('id', None)
+            if not isinstance(item, dict):
+                errors.append({"index": index, "errors": "Each item must be an object."})
+                continue
 
+            item_id = item.get("id")
+            name = (item.get("name") or "").strip()
+
+            # -------- 1) update by id --------
             if item_id:
-                # 更新已有记录
-                try:
-                    material = RawMaterial.objects.get(id=item_id)
+                material = RawMaterial.objects.filter(id=item_id).first()
+                if not material:
+                    errors.append({"index": index, "id": item_id, "errors": "Material not found."})
+                    continue
+
+                serializer = RawMaterialSerializer(material, data=item, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    updated.append(serializer.data)
+                else:
+                    errors.append({"index": index, "id": item_id, "errors": serializer.errors})
+                continue
+
+            # -------- 2) update by name if exists --------
+            if name:
+                material = RawMaterial.objects.filter(name=name).first()
+                if material:
                     serializer = RawMaterialSerializer(material, data=item, partial=True)
                     if serializer.is_valid():
                         serializer.save()
                         updated.append(serializer.data)
                     else:
-                        errors.append({'index': index, 'id': item_id, 'errors': serializer.errors})
-                except RawMaterial.DoesNotExist:
-                    errors.append({'index': index, 'id': item_id, 'errors': '食材不存在'})
-            else:
-                # 创建新记录
-                serializer = RawMaterialSerializer(data=item)
-                if serializer.is_valid():
-                    serializer.save()
-                    created.append(serializer.data)
-                else:
-                    errors.append({'index': index, 'errors': serializer.errors})
+                        errors.append({"index": index, "name": name, "errors": serializer.errors})
+                    continue
 
-        return Response({
-            'message': f'创建 {len(created)} 条，更新 {len(updated)} 条，失败 {len(errors)} 条',
-            'created': created,
-            'updated': updated,
-            'errors': errors
-        }, status=status.HTTP_200_OK if not errors else status.HTTP_207_MULTI_STATUS)
+            # -------- 3) create new --------
+            serializer = RawMaterialSerializer(data=item)
+            if serializer.is_valid():
+                serializer.save()
+                created.append(serializer.data)
+            else:
+                errors.append({"index": index, "errors": serializer.errors})
+
+        ok = len(errors) == 0
+        return Response(
+            {
+                "message": f"Created {len(created)}, Updated {len(updated)}, Failed {len(errors)}",
+                "created": created,
+                "updated": updated,
+                "errors": errors,
+            },
+            status=status.HTTP_200_OK if ok else status.HTTP_207_MULTI_STATUS
+        )
 
 
 class DishViewSet(viewsets.ModelViewSet):
