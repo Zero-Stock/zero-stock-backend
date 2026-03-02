@@ -22,6 +22,9 @@ from .views import (
     DeliveryGenerateView, DeliveryDetailView,
     DeliveryByRegionView, DeliveryExportView,
 )
+from .views.search_views import (
+    WeeklyMenuSearchView, CensusSearchView, ProcurementSearchView,
+)
 
 router = DefaultRouter()
 router.register(r'weekly-menus', WeeklyMenuViewSet, basename='weekly-menus')
@@ -70,5 +73,10 @@ urlpatterns = [
     path("delivery/<int:pk>/", DeliveryDetailView.as_view(), name="delivery-detail"),
     path("delivery/<int:pk>/by-region/", DeliveryByRegionView.as_view(), name="delivery-by-region"),
     path("delivery/<int:pk>/export/", DeliveryExportView.as_view(), name="delivery-export"),
+
+    # ---- Search endpoints ----
+    path("weekly-menus/search/", WeeklyMenuSearchView.as_view(), name="weekly-menus-search"),
+    path("census/search/", CensusSearchView.as_view(), name="census-search"),
+    path("procurement/search/", ProcurementSearchView.as_view(), name="procurement-search"),
 
 ] + router.urls

@@ -2,6 +2,9 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import LoginView, MeView, CompanyListView, LogoutView, RawMaterialYieldRateUpdateView
+from .views.search_views import (
+    MaterialSearchView, DishSearchView, SupplierSearchView, DietSearchView,
+)
 
 from .viewsets import (
     DietCategoryViewSet, RawMaterialViewSet,
@@ -21,4 +24,10 @@ urlpatterns = [
     path("auth/me/", MeView.as_view(), name="me"),
     path("companies/", CompanyListView.as_view(), name="companies-list"),
     path("raw-materials/<int:raw_material_id>/yield-rate/", RawMaterialYieldRateUpdateView.as_view()),
+
+    # Search endpoints
+    path("materials/search/", MaterialSearchView.as_view(), name="materials-search"),
+    path("dishes/search/", DishSearchView.as_view(), name="dishes-search"),
+    path("suppliers/search/", SupplierSearchView.as_view(), name="suppliers-search"),
+    path("diets/search/", DietSearchView.as_view(), name="diets-search"),
 ] + router.urls
