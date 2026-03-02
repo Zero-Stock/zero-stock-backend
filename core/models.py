@@ -116,12 +116,6 @@ class ProcessedMaterial(models.Model):
     method_name = models.CharField(max_length=50, verbose_name="Processing Method",
                                    help_text="E.g., 'Peeled', 'Sliced'")
 
-    # yield_rate = models.DecimalField(
-    #     max_digits=5, decimal_places=2, default=1.00,
-    #     verbose_name="Yield Rate",
-    #     help_text="Format: 1.00 = 100%, 0.80 = 80%. Formula: Gross = Net / Yield"
-    # )
-
     class Meta:
         unique_together = ('raw_material', 'method_name')  # Ensures distinct methods for same material
         verbose_name = "Processing Specification"

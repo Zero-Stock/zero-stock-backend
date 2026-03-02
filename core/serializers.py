@@ -1,12 +1,20 @@
 # core/serializers.py
 from django.utils import timezone
+from datetime import timedelta
 from datetime import date
 from rest_framework import serializers
 from .models import (
     ClientCompany, DietCategory, RawMaterial, ProcessedMaterial,
     Dish, DishIngredient, Supplier, SupplierMaterial, MaterialCategory, RawMaterialYieldRate
 )
-from .views.yield_views import compute_effective_date
+
+def compute_effective_date(now_local):
+    """
+    Rule:
+    - If update happens during the "same calendar day" before 23:59 => effective tomorrow
+    - If update happens after midnight (new day) => effective day after tomorrow
+    """
+    return now_local.date() + timedelta(days=1)
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
