@@ -507,12 +507,17 @@
             "company_name": "XX医院",
             "diet_category": 1,
             "diet_category_name": "标准套餐A",
-            "day_of_week": 1,
-            "day_display": "Monday",
+            "day_of_week": 5,
+            "day_display": "Friday",
             "meal_time": "L",
             "meal_display": "Lunch",
             "dishes": [1, 2, 3],
-            "dish_names": ["番茄牛腩", "清炒菠菜", "米饭"]
+            "dish_names": ["番茄炒蛋", "土豆丝", "米饭"],
+            "dishes_detail": [
+                {"dish_id": 1, "dish_name": "番茄炒蛋", "quantity": 2},
+                {"dish_id": 2, "dish_name": "土豆丝", "quantity": 3},
+                {"dish_id": 3, "dish_name": "米饭", "quantity": 1}
+            ]
         }
     ]
 }
@@ -522,6 +527,8 @@
 - `day_display`: 英文星期名
 - `meal_display`: 英文餐次名
 - `dish_names`: 菜品名称列表（仅名称字符串）
+- `dishes_detail`: 菜品详情列表，包含每道菜的 `dish_id`、`dish_name` 和 `quantity`（份数/盘数）
+- `quantity`：该菜品在本餐次的数量，默认为 1。例如 `quantity: 2` 表示该菜做两盘
 
 ---
 
@@ -529,7 +536,7 @@
 
 **POST** `/api/weekly-menus/`
 
-**请求体：**
+**请求体（方式一：纯 ID 列表，quantity 默认为 1）：**
 ```json
 {
     "company": 1,
@@ -540,7 +547,25 @@
 }
 ```
 
+**请求体（方式二：指定每道菜的数量）：**
+```json
+{
+    "company": 1,
+    "diet_category": 1,
+    "day_of_week": 5,
+    "meal_time": "L",
+    "dishes": [
+        {"dish_id": 1, "quantity": 2},
+        {"dish_id": 2, "quantity": 3},
+        {"dish_id": 3, "quantity": 1}
+    ]
+}
+```
+
 **响应：** 201 Created
+
+**说明：**
+- `dishes` 支持两种格式：纯菜品 ID 列表（向后兼容，数量默认 1）或对象列表（可指定 quantity）
 
 ---
 
@@ -561,9 +586,12 @@
     {
         "company": 1,
         "diet_category": 1,
-        "day_of_week": 2,
+        "day_of_week": 5,
         "meal_time": "L",
-        "dishes": [4, 5, 6]
+        "dishes": [
+            {"dish_id": 1, "quantity": 2},
+            {"dish_id": 2, "quantity": 3}
+        ]
     }
 ]
 ```
@@ -580,6 +608,7 @@
 - 如果指定的组合（公司+餐食类型+星期+用餐时间）已存在，则更新菜品列表
 - 如果不存在，则创建新配置
 - 适合前端一次性提交整周的菜单安排
+- `dishes` 支持纯 ID 列表（quantity 默认 1）和对象列表（可指定 quantity）
 
 ---
 
@@ -587,10 +616,20 @@
 
 **PUT/PATCH** `/api/weekly-menus/{id}/`
 
-**请求体示例：**
+**请求体示例（纯 ID 列表）：**
 ```json
 {
     "dishes": [10, 11, 12]
+}
+```
+
+**请求体示例（带数量）：**
+```json
+{
+    "dishes": [
+        {"dish_id": 10, "quantity": 2},
+        {"dish_id": 11, "quantity": 1}
+    ]
 }
 ```
 

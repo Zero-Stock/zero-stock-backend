@@ -1,17 +1,21 @@
 from django.contrib import admin
-from .models import ClientCompanyRegion, WeeklyMenu, DailyCensus, ProcurementRequest, ProcurementItem
+from .models import ClientCompanyRegion, WeeklyMenu, WeeklyMenuDish, DailyCensus, ProcurementRequest, ProcurementItem
 
 @admin.register(ClientCompanyRegion)
 class ClientCompanyRegionAdmin(admin.ModelAdmin):
     list_display = ('name', 'company')
     list_filter = ('company',)
 
+class WeeklyMenuDishInline(admin.TabularInline):
+    model = WeeklyMenuDish
+    extra = 1
+
 @admin.register(WeeklyMenu)
 class WeeklyMenuAdmin(admin.ModelAdmin):
     # Grouping by Diet Category makes it easy to see the full week plan
     list_display = ('company', 'diet_category', 'day_of_week', 'meal_time')
     list_filter = ('company', 'diet_category', 'day_of_week')
-    filter_horizontal = ('dishes',) # Easy selection box
+    inlines = [WeeklyMenuDishInline]
     ordering = ('company', 'diet_category', 'day_of_week', 'meal_time')
 
 @admin.register(DailyCensus)

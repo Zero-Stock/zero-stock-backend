@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from decimal import Decimal
 from collections import defaultdict
-from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, DailyMenu
+from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu
 from core.models import DishIngredient, SupplierMaterial
 from ..serializers import ProcurementRequestSerializer, ProcurementItemSerializer, ProcurementGenerateSerializer
 
@@ -161,6 +161,7 @@ class ProcurementGenerateView(APIView):
             totals[rid]["notes"].append(note)
 
         def get_dishes_for(diet_id: int, meal_type: str):
+            """Returns list of (dish, quantity) tuples for this diet+meal combo."""
             dm = DailyMenu.objects.filter(
                 company_id=company_id,
                 date=target_date,
@@ -168,16 +169,17 @@ class ProcurementGenerateView(APIView):
                 meal_type=meal_type,
             ).prefetch_related("dishes").first()
             if dm:
-                return list(dm.dishes.all())
+                return [(dish, 1) for dish in dm.dishes.all()]
 
             wm = WeeklyMenu.objects.filter(
                 company_id=company_id,
                 diet_category_id=diet_id,
                 day_of_week=weekday,
                 meal_time=meal_type,
-            ).prefetch_related("dishes").first()
+            ).first()
             if wm:
-                return list(wm.dishes.all())
+                menu_dishes = WeeklyMenuDish.objects.filter(menu=wm).select_related('dish')
+                return [(md.dish, md.quantity) for md in menu_dishes]
             return []
 
         # 3) compute
@@ -191,7 +193,7 @@ class ProcurementGenerateView(APIView):
                 if not dishes:
                     continue
 
-                for dish in dishes:
+                for dish, dish_qty in dishes:
                     recipe_rows = (
                         DishIngredient.objects
                         .filter(dish_id=dish.id)
@@ -207,15 +209,15 @@ class ProcurementGenerateView(APIView):
                                 {"detail": f"Invalid yield_rate for {raw.name} [{method_name}]."}
                             )
 
-                        net_per_serv = ing.net_quantity
+                        net_per_serv = ing.net_quantity * dish_qty
                         total_net = Decimal(people) * net_per_serv
                         total_gross = total_net / yield_rate
 
                         method_name = processing.method_name if processing else "无加工"
                         note = (
                             f"{target_date} {meal} | diet={diet_id} "
-                            f"| {dish.name} | {raw.name}[{method_name}] "
-                            f"net={net_per_serv} * {people} / yield={yield_rate} => gross={total_gross}"
+                            f"| {dish.name} x{dish_qty} | {raw.name}[{method_name}] "
+                            f"net={ing.net_quantity}*{dish_qty} * {people} / yield={yield_rate} => gross={total_gross}"
                         )
                         add_gross(raw, total_gross, note, period)
 
