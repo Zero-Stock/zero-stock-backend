@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from core.models import ClientCompany, Dish
-from ..models import WeeklyMenu, DailyCensus
+from ..models import WeeklyMenu, WeeklyMenuDish, DailyCensus
 
 
 class CookingTodayView(APIView):
@@ -54,7 +54,15 @@ class CookingTodayView(APIView):
             total_count = headcount['total'] or 0
 
             dishes_data = []
-            for dish in menu.dishes.all():
+            menu_dishes = WeeklyMenuDish.objects.filter(menu=menu).select_related(
+                'dish'
+            ).prefetch_related(
+                'dish__ingredients__raw_material',
+                'dish__ingredients__processing'
+            )
+            for md in menu_dishes:
+                dish = md.dish
+                dish_qty = md.quantity
                 ingredients = []
                 for ing in dish.ingredients.all():
                     raw = ing.raw_material
@@ -73,6 +81,7 @@ class CookingTodayView(APIView):
                 dishes_data.append({
                     "dish_id": dish.id,
                     "dish_name": dish.name,
+                    "quantity": dish_qty,
                     "ingredients": ingredients,
                 })
 

@@ -116,12 +116,20 @@ class ProcurementGenerateSerializer(serializers.Serializer):
 
 # ---- Weekly Menu ----
 
+class WeeklyMenuDishSerializer(serializers.Serializer):
+    """Serializer for WeeklyMenuDish through table entries"""
+    dish_id = serializers.IntegerField(source='dish.id')
+    dish_name = serializers.CharField(source='dish.name', read_only=True)
+    quantity = serializers.IntegerField()
+
+
 class WeeklyMenuSerializer(serializers.ModelSerializer):
     diet_category_name = serializers.CharField(source='diet_category.name', read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
     day_display = serializers.CharField(source='get_day_of_week_display', read_only=True)
     meal_display = serializers.CharField(source='get_meal_time_display', read_only=True)
     dish_names = serializers.SerializerMethodField()
+    dishes_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = WeeklyMenu
@@ -130,11 +138,20 @@ class WeeklyMenuSerializer(serializers.ModelSerializer):
             "diet_category", "diet_category_name",
             "day_of_week", "day_display",
             "meal_time", "meal_display",
-            "dishes", "dish_names",
+            "dishes", "dish_names", "dishes_detail",
         ]
+        read_only_fields = ["dishes"]
 
     def get_dish_names(self, obj):
         return [d.name for d in obj.dishes.all()]
+
+    def get_dishes_detail(self, obj):
+        from .models import WeeklyMenuDish
+        menu_dishes = WeeklyMenuDish.objects.filter(menu=obj).select_related('dish')
+        return [
+            {"dish_id": md.dish_id, "dish_name": md.dish.name, "quantity": md.quantity}
+            for md in menu_dishes
+        ]
 
 
 class WeeklyMenuBatchItemSerializer(serializers.Serializer):
@@ -142,7 +159,8 @@ class WeeklyMenuBatchItemSerializer(serializers.Serializer):
     diet_category = serializers.IntegerField()
     day_of_week = serializers.IntegerField()
     meal_time = serializers.CharField()
-    dishes = serializers.ListField(child=serializers.IntegerField())
+    # Accept either plain list of IDs [1,2,3] or list of objects [{"dish_id":1,"quantity":2}]
+    dishes = serializers.ListField()
 
 
 class WeeklyMenuBatchSerializer(serializers.Serializer):
@@ -150,6 +168,8 @@ class WeeklyMenuBatchSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         from core.models import Dish
+        from .models import WeeklyMenuDish
+
         results = []
         for item in validated_data['menus']:
             menu, _ = WeeklyMenu.objects.update_or_create(
@@ -158,8 +178,20 @@ class WeeklyMenuBatchSerializer(serializers.Serializer):
                 day_of_week=item['day_of_week'],
                 meal_time=item['meal_time'],
             )
-            dishes = Dish.objects.filter(id__in=item['dishes'])
-            menu.dishes.set(dishes)
+            # Clear existing dish associations
+            WeeklyMenuDish.objects.filter(menu=menu).delete()
+
+            # Parse dishes: support both [1,2,3] and [{"dish_id":1,"quantity":2}]
+            for d in item['dishes']:
+                if isinstance(d, dict):
+                    dish_id = d.get('dish_id') or d.get('id')
+                    quantity = d.get('quantity', 1)
+                else:
+                    dish_id = int(d)
+                    quantity = 1
+                WeeklyMenuDish.objects.create(
+                    menu=menu, dish_id=dish_id, quantity=quantity
+                )
             results.append(menu)
         return results
 

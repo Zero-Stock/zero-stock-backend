@@ -52,8 +52,8 @@ class WeeklyMenu(models.Model):
     day_of_week = models.IntegerField(choices=DAY_CHOICES, verbose_name="Day of Week")
     meal_time = models.CharField(max_length=1, choices=MEAL_CHOICES, verbose_name="Meal Period")
 
-    # The fixed dishes for this specific slot
-    dishes = models.ManyToManyField(Dish, verbose_name="Fixed Dishes")
+    # The fixed dishes for this specific slot (with quantity via through table)
+    dishes = models.ManyToManyField(Dish, through='WeeklyMenuDish', verbose_name="Fixed Dishes")
 
     class Meta:
         verbose_name = "Weekly Menu Config"
@@ -63,6 +63,26 @@ class WeeklyMenu(models.Model):
 
     def __str__(self):
         return f"{self.diet_category} - {self.get_day_of_week_display()} {self.get_meal_time_display()}"
+
+
+class WeeklyMenuDish(models.Model):
+    """
+    Through table for WeeklyMenu <-> Dish relationship.
+    Stores the quantity (number of plates/servings) for each dish in a menu slot.
+    Example: 普食1 Friday Lunch -> 番茄炒蛋 x2, 土豆丝 x3
+    """
+    menu = models.ForeignKey(WeeklyMenu, on_delete=models.CASCADE, related_name='menu_dishes')
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1, verbose_name="份数",
+                                           help_text="该菜品在此餐次的数量（盘数），默认1")
+
+    class Meta:
+        unique_together = ('menu', 'dish')
+        verbose_name = "Weekly Menu Dish"
+        verbose_name_plural = "Weekly Menu Dishes"
+
+    def __str__(self):
+        return f"{self.menu} - {self.dish.name} x{self.quantity}"
 
 
 # ==========================================

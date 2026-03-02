@@ -10,7 +10,7 @@ from rest_framework import status
 
 from core.models import ClientCompany
 from ..models import (
-    WeeklyMenu, DailyCensus,
+    WeeklyMenu, WeeklyMenuDish, DailyCensus,
     ProcessingOrder, ProcessingItem
 )
 from ..serializers import (
@@ -64,7 +64,15 @@ class ProcessingGenerateView(APIView):
                 if headcount == 0:
                     continue
 
-                for dish in menu.dishes.all():
+                menu_dishes = WeeklyMenuDish.objects.filter(menu=menu).select_related(
+                    'dish'
+                ).prefetch_related(
+                    'dish__ingredients__raw_material',
+                    'dish__ingredients__processing'
+                )
+                for md in menu_dishes:
+                    dish = md.dish
+                    dish_qty = md.quantity
                     for ingredient in dish.ingredients.all():
                         raw = ingredient.raw_material
                         processing = ingredient.processing
