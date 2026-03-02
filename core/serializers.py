@@ -1,10 +1,12 @@
 # core/serializers.py
+from django.utils import timezone
+from datetime import date
 from rest_framework import serializers
 from .models import (
     ClientCompany, DietCategory, RawMaterial, ProcessedMaterial,
-    Dish, DishIngredient, Supplier, SupplierMaterial, MaterialCategory
+    Dish, DishIngredient, Supplier, SupplierMaterial, MaterialCategory, RawMaterialYieldRate
 )
-
+from .views.yield_views import compute_effective_date
 
 class CompanySerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,34 +33,121 @@ class MaterialCategorySerializer(serializers.ModelSerializer):
 class ProcessedMaterialSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProcessedMaterial
-        fields = ["id", "method_name", "yield_rate"]
-
+        fields = ["id", "method_name"]
 
 class RawMaterialSerializer(serializers.ModelSerializer):
-    specs = ProcessedMaterialSerializer(many=True, read_only=True)
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    specs = ProcessedMaterialSerializer(many=True, required=False)
+    category_name = serializers.CharField(source="category.name", read_only=True)
+
+    # write-only: accept on create/update, not returned directly
+    yield_rate = serializers.DecimalField(
+        max_digits=5, decimal_places=2, required=False, write_only=True
+    )
+
+    # read-only: returned in GET
+    current_yield_rate = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RawMaterial
-        fields = ["id", "name", "category", "category_name", "specs"]
+        fields = [
+            "id", "name", "category", "category_name",
+            "specs", "yield_rate", "current_yield_rate"
+        ]
 
+    # ---------- helpers ----------
+    def _upsert_yield_rate(self, raw_material, yield_rate):
+        """
+        Store yield_rate into RawMaterialYieldRate with effective_date computed.
+        Use update_or_create to avoid duplicate dirty rows when user clicks save twice.
+        """
+        if yield_rate is None:
+            return
+
+        now = timezone.localtime()
+        eff = compute_effective_date(now)  # returns a date
+
+        RawMaterialYieldRate.objects.update_or_create(
+            raw_material=raw_material,
+            effective_date=eff,
+            defaults={"yield_rate": yield_rate},
+        )
+
+    def _upsert_specs(self, raw_material, specs_data):
+        """
+        Add missing processing methods only.
+        - specs_data == None: do nothing (means client didn't send specs)
+        - specs_data == []: treat as "send empty": still do nothing (we do NOT delete existing)
+          (If you want "empty means clear all", tell me, we can change it.)
+        """
+        if specs_data is None:
+            return
+
+        seen = set()
+        for spec in specs_data:
+            method = (spec or {}).get("method_name")
+            if not method:
+                continue
+            method = method.strip()
+            if not method or method in seen:
+                continue
+            seen.add(method)
+
+            ProcessedMaterial.objects.get_or_create(
+                raw_material=raw_material,
+                method_name=method
+            )
+
+    # ---------- DRF hooks ----------
+    def create(self, validated_data):
+        yield_rate = validated_data.pop("yield_rate", None)
+        specs_data = validated_data.pop("specs", None)  # None means not provided
+
+        rm = super().create(validated_data)
+
+        self._upsert_yield_rate(rm, yield_rate)
+        self._upsert_specs(rm, specs_data)
+
+        return rm
+
+    def update(self, instance, validated_data):
+        yield_rate = validated_data.pop("yield_rate", None)
+        specs_data = validated_data.pop("specs", None)
+
+        # update base fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        self._upsert_yield_rate(instance, yield_rate)
+        self._upsert_specs(instance, specs_data)
+
+        return instance
+
+    def get_current_yield_rate(self, obj):
+        # timezone-safe "today"
+        today = timezone.localdate()
+        rec = (
+            RawMaterialYieldRate.objects
+            .filter(raw_material=obj, effective_date__lte=today)
+            .order_by("-effective_date", "-id")
+            .first()
+        )
+        return str(rec.yield_rate) if rec else "1.00"
+
+   
 
 # ---- Dishes & Recipes ----
 
 class DishIngredientSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
     processing_name = serializers.SerializerMethodField()
-    yield_rate = serializers.SerializerMethodField()
 
     class Meta:
         model = DishIngredient
-        fields = ["id", "raw_material", "raw_material_name", "processing", "processing_name", "yield_rate", "net_quantity"]
+        fields = ["id", "raw_material", "raw_material_name", "processing", "yield_rate", "net_quantity"]
 
     def get_processing_name(self, obj):
         return obj.processing.method_name if obj.processing else None
-
-    def get_yield_rate(self, obj):
-        return float(obj.processing.yield_rate) if obj.processing else None
 
 
 class DishIngredientWriteSerializer(serializers.Serializer):

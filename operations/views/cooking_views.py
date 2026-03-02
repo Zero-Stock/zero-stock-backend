@@ -68,10 +68,8 @@ class CookingTodayView(APIView):
                     raw = ing.raw_material
                     processing = ing.processing
                     net_per_serving = ing.net_quantity
-                    net_total = net_per_serving * total_count * dish_qty if total_count else 0
-                    yield_rate = processing.yield_rate if processing else 1
-                    gross_total = (net_total / yield_rate) if yield_rate else net_total
-
+                    net_total = net_per_serving * total_count if total_count else 0
+                    gross_total = net_total 
                     ingredients.append({
                         "material": raw.name,
                         "method": processing.method_name if processing else None,
@@ -121,13 +119,11 @@ class CookingRecipeView(APIView):
             raw = ing.raw_material
             processing = ing.processing
             net_qty = ing.net_quantity * count
-            yield_rate = processing.yield_rate if processing else 1
-            gross_qty = (net_qty / yield_rate) if yield_rate else net_qty
+            gross_qty = net_qty
 
             ingredients.append({
                 "material": raw.name,
                 "method": processing.method_name if processing else None,
-                "yield_rate": float(yield_rate),
                 "net_per_serving": float(ing.net_quantity),
                 "net_total": float(net_qty),
                 "gross_total": float(gross_qty),

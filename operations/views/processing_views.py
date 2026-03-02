@@ -76,9 +76,8 @@ class ProcessingGenerateView(APIView):
                     for ingredient in dish.ingredients.all():
                         raw = ingredient.raw_material
                         processing = ingredient.processing
-                        yield_rate = processing.yield_rate if processing else 1
-                        net_qty = ingredient.net_quantity * headcount * dish_qty
-                        gross_qty = net_qty / yield_rate if yield_rate else net_qty
+                        net_qty = ingredient.net_quantity * headcount
+                        gross_qty = net_qty
 
                         ProcessingItem.objects.create(
                             order=order,

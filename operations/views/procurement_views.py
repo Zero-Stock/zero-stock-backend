@@ -1,3 +1,4 @@
+# operations/views/procurement_views.py
 from django.db.models import Sum
 from django.db import transaction
 from rest_framework import generics, status
@@ -7,8 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from decimal import Decimal
 from collections import defaultdict
-from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu
-from core.models import DishIngredient, SupplierMaterial
+from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, DailyMenu
+from core.models import DishIngredient, SupplierMaterial, RawMaterialYieldRate
 from ..serializers import ProcurementRequestSerializer, ProcurementItemSerializer, ProcurementGenerateSerializer
 
 
@@ -20,6 +21,23 @@ def require_rw(user):
 def meal_to_period(meal_type: str) -> str:
     """B/L -> AM (morning), D -> PM (afternoon)"""
     return "PM" if meal_type == "D" else "AM"
+
+def get_yield_rate_for(raw_material_id: int, target_date):
+    """
+    Return the yield rate effective on target_date.
+    Logic:
+    - Find the latest yield_rate where effective_date <= target_date
+    - If none found, return 1.00
+    """
+    rec = (
+        RawMaterialYieldRate.objects
+        .filter(raw_material_id=raw_material_id,
+                effective_date__lte=target_date)
+        .order_by("-effective_date", "-id")
+        .first()
+    )
+
+    return rec.yield_rate if rec else Decimal("1.00")
 
 
 class ProcurementListView(generics.ListAPIView):
@@ -201,10 +219,10 @@ class ProcurementGenerateView(APIView):
                     )
                     for ing in recipe_rows:
                         raw = ing.raw_material
-                        processing = ing.processing
-                        yield_rate = processing.yield_rate if processing else Decimal("1.00")
+                        processing = ing.processing 
+                        yield_rate = get_yield_rate_for(raw.id, target_date)
                         if yield_rate <= 0:
-                            method_name = processing.method_name if processing else "N/A"
+                            #method_name = processing.method_name if processing else "N/A"
                             raise ValidationError(
                                 {"detail": f"Invalid yield_rate for {raw.name} [{method_name}]."}
                             )

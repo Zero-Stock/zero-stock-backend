@@ -85,6 +85,27 @@ class RawMaterial(models.Model):
     def __str__(self):
         return self.name
 
+class RawMaterialYieldRate(models.Model):
+    """
+    Yield rate is tied ONLY to RawMaterial and affects PROCUREMENT only.
+    Each record is a version effective from `effective_date` (inclusive).
+    """
+    raw_material = models.ForeignKey(
+        "RawMaterial", on_delete=models.CASCADE, related_name="yield_rates"
+    )
+    yield_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=1.00,
+        help_text="1.00 = 100%, 0.80 = 80%. Procurement gross = net / yield."
+    )
+    effective_date = models.DateField(help_text="Effective from this date (inclusive).")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("raw_material", "effective_date")
+        ordering = ["-effective_date", "-id"]
+
+    def __str__(self):
+        return f"{self.raw_material.name} yield={self.yield_rate} from {self.effective_date}"
 
 class ProcessedMaterial(models.Model):
     """
@@ -95,18 +116,18 @@ class ProcessedMaterial(models.Model):
     method_name = models.CharField(max_length=50, verbose_name="Processing Method",
                                    help_text="E.g., 'Peeled', 'Sliced'")
 
-    yield_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, default=1.00,
-        verbose_name="Yield Rate",
-        help_text="Format: 1.00 = 100%, 0.80 = 80%. Formula: Gross = Net / Yield"
-    )
+    # yield_rate = models.DecimalField(
+    #     max_digits=5, decimal_places=2, default=1.00,
+    #     verbose_name="Yield Rate",
+    #     help_text="Format: 1.00 = 100%, 0.80 = 80%. Formula: Gross = Net / Yield"
+    # )
 
     class Meta:
         unique_together = ('raw_material', 'method_name')  # Ensures distinct methods for same material
         verbose_name = "Processing Specification"
 
     def __str__(self):
-        return f"{self.raw_material.name} [{self.method_name}] (Yield: {self.yield_rate})"
+        return f"{self.raw_material.name} [{self.method_name}]" #(Yield: {self.yield_rate})
 
 # Dishes & Recipes
 class Dish(models.Model):
