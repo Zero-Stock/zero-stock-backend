@@ -8,7 +8,7 @@ from .views.search_views import (
 
 from .viewsets import (
     DietCategoryViewSet, RawMaterialViewSet,
-    DishViewSet, SupplierViewSet, MaterialCategoryViewSet
+    DishViewSet, SupplierViewSet, MaterialCategoryViewSet, SupplierMaterialViewSet,
 )
 
 router = DefaultRouter()
@@ -17,6 +17,7 @@ router.register(r'materials', RawMaterialViewSet, basename='materials')
 router.register(r'dishes', DishViewSet, basename='dishes')
 router.register(r'diets', DietCategoryViewSet, basename='diets')
 router.register(r'suppliers', SupplierViewSet, basename='suppliers')
+router.register(r'supplier-materials', SupplierMaterialViewSet, basename='supplier-materials')
 
 urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="login"),

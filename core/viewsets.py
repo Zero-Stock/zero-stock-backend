@@ -5,6 +5,8 @@ from rest_framework import viewsets, status, filters, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
+from django.db import IntegrityError
+from rest_framework.exceptions import ValidationError
 
 from .models import (
     DietCategory, RawMaterial, ProcessedMaterial,
@@ -275,16 +277,38 @@ class SupplierViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name']
 
-    @action(detail=True, methods=['get', 'post'], url_path='materials')
-    def manage_materials(self, request, pk=None):
-        supplier = self.get_object()
-        if request.method == 'GET':
-            items = SupplierMaterial.objects.filter(supplier=supplier)
-            serializer = SupplierMaterialSerializer(items, many=True)
-            return Response(serializer.data)
-        else:
-            serializer = SupplierMaterialSerializer(data=request.data)
-            if serializer.is_valid():
-                serializer.save(supplier=supplier)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class SupplierMaterialViewSet(viewsets.ModelViewSet):
+    """
+    SupplierMaterial CRUD
+
+    GET  /api/supplier-materials/?supplier=1&search=tomato&ordering=-price
+    POST /api/supplier-materials/
+    PATCH/PUT/DELETE /api/supplier-materials/{id}/
+    """
+    queryset = SupplierMaterial.objects.select_related("supplier", "raw_material")
+    serializer_class = SupplierMaterialSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["supplier__name", "raw_material__name"]
+    ordering_fields = ["id", "supplier__name", "raw_material__name", "unit_name", "kg_per_unit", "price"]
+    ordering = ["supplier__name", "raw_material__name"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        supplier_id = self.request.query_params.get("supplier")
+        raw_material_id = self.request.query_params.get("raw_material")
+
+        if supplier_id:
+            qs = qs.filter(supplier_id=supplier_id)
+        if raw_material_id:
+            qs = qs.filter(raw_material_id=raw_material_id)
+
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        """
+        Handle unique_together (supplier, raw_material) nicely.
+        """
+        try:
+            return super().create(request, *args, **kwargs)
+        except IntegrityError:
+            raise ValidationError({"detail": "This supplier already has this raw material."})
