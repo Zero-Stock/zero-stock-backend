@@ -243,11 +243,12 @@ class DietDishesSerializer(serializers.Serializer):
 # ---- Suppliers ----
 
 class SupplierMaterialSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
     raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
 
     class Meta:
         model = SupplierMaterial
-        fields = ["id", "raw_material", "raw_material_name", "unit_name", "kg_per_unit", "price", "notes"]
+        fields = ["id",  "supplier", "supplier_name", "raw_material", "raw_material_name", "unit_name", "kg_per_unit", "price", "notes"]
 
 
 class SupplierSerializer(serializers.ModelSerializer):
