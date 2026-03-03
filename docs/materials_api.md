@@ -4,6 +4,8 @@
 
 API endpoints for Raw Materials, supporting unified search, CRUD operations, batch processing, processing specifications management, and yield rate configuration.
 
+> **Response Envelope**: All endpoints return `{"message": "...", "error": null|{type, details}, "results": ...}`.
+
 ---
 
 ## 1. Unified Search ⭐
@@ -24,20 +26,20 @@ API endpoints for Raw Materials, supporting unified search, CRUD operations, bat
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `total` | int | Total number of items matching the criteria |
-| `page` | int | Current page number |
-| `page_size` | int | Items per page |
-| `results` | array | List of raw materials |
-| `results[].id` | int | Material ID |
-| `results[].name` | string | Material name |
-| `results[].category` | int | Category ID |
-| `results[].category_name` | string | Category name |
-| `results[].specs` | array | List of processing specifications |
-| `results[].specs[].id` | int | Spec ID |
-| `results[].specs[].method_name` | string | Processing method name |
-| `results[].current_yield_rate` | string | Currently effective yield rate |
+| `results.total` | int | Total number of items matching the criteria |
+| `results.page` | int | Current page number |
+| `results.page_size` | int | Items per page |
+| `results.results` | array | List of raw materials |
+| `results.results[].id` | int | Material ID |
+| `results.results[].name` | string | Material name |
+| `results.results[].category` | int | Category ID |
+| `results.results[].category_name` | string | Category name |
+| `results.results[].specs` | array | List of processing specifications |
+| `results.results[].specs[].id` | int | Spec ID |
+| `results.results[].specs[].method_name` | string | Processing method name |
+| `results.results[].current_yield_rate` | string | Currently effective yield rate |
 
-### Sample Input + Output
+### Sample
 
 **Request:**
 ```json
@@ -54,30 +56,26 @@ POST /api/materials/search/
 **Response:**
 ```json
 {
-    "total": 2,
-    "page": 1,
-    "page_size": 10,
-    "results": [
-        {
-            "id": 3,
-            "name": "Potato",
-            "category": 1,
-            "category_name": "Fresh",
-            "specs": [
-                {"id": 1, "method_name": "Peeled & Sliced"},
-                {"id": 2, "method_name": "Peeled & diced"}
-            ],
-            "current_yield_rate": "0.85"
-        },
-        {
-            "id": 7,
-            "name": "Small Potato",
-            "category": 1,
-            "category_name": "Fresh",
-            "specs": [],
-            "current_yield_rate": "1.00"
-        }
-    ]
+    "message": "OK",
+    "error": null,
+    "results": {
+        "total": 2,
+        "page": 1,
+        "page_size": 10,
+        "results": [
+            {
+                "id": 3,
+                "name": "Potato",
+                "category": 1,
+                "category_name": "Fresh",
+                "specs": [
+                    {"id": 1, "method_name": "Peeled & Sliced"},
+                    {"id": 2, "method_name": "Peeled & diced"}
+                ],
+                "current_yield_rate": "0.85"
+            }
+        ]
+    }
 }
 ```
 
@@ -100,7 +98,7 @@ POST /api/materials/search/
 
 Paginated list, structure same as the `results` in the search endpoint. When using `group_by`, returns an object keyed by the grouping criteria.
 
-### Sample Input + Output
+### Sample
 
 **Request:**
 ```
@@ -110,19 +108,23 @@ GET /api/materials/?category=1&ordering=name
 **Response:**
 ```json
 {
-    "count": 15,
-    "next": "http://localhost:8000/api/materials/?category=1&ordering=name&page=2",
-    "previous": null,
-    "results": [
-        {
-            "id": 3,
-            "name": "Potato",
-            "category": 1,
-            "category_name": "Fresh",
-            "specs": [{"id": 1, "method_name": "Peeled & Sliced"}],
-            "current_yield_rate": "0.85"
-        }
-    ]
+    "message": "OK",
+    "error": null,
+    "results": {
+        "count": 15,
+        "next": "http://localhost:8000/api/materials/?category=1&ordering=name&page=2",
+        "previous": null,
+        "results": [
+            {
+                "id": 3,
+                "name": "Potato",
+                "category": 1,
+                "category_name": "Fresh",
+                "specs": [{"id": 1, "method_name": "Peeled & Sliced"}],
+                "current_yield_rate": "0.85"
+            }
+        ]
+    }
 }
 ```
 
@@ -140,14 +142,14 @@ Path parameter `{id}`: Material ID
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | int | Material ID |
-| `name` | string | Material name |
-| `category` | int | Category ID |
-| `category_name` | string | Category name |
-| `specs` | array | List of processing specifications |
-| `current_yield_rate` | string | Current yield rate |
+| `results.id` | int | Material ID |
+| `results.name` | string | Material name |
+| `results.category` | int | Category ID |
+| `results.category_name` | string | Category name |
+| `results.specs` | array | List of processing specifications |
+| `results.current_yield_rate` | string | Current yield rate |
 
-### Sample Input + Output
+### Sample
 
 **Request:**
 ```
@@ -157,15 +159,31 @@ GET /api/materials/3/
 **Response:**
 ```json
 {
-    "id": 3,
-    "name": "Potato",
-    "category": 1,
-    "category_name": "Fresh",
-    "specs": [
-        {"id": 1, "method_name": "Peeled & Sliced"},
-        {"id": 2, "method_name": "Peeled & diced"}
-    ],
-    "current_yield_rate": "0.85"
+    "message": "OK",
+    "error": null,
+    "results": {
+        "id": 3,
+        "name": "Potato",
+        "category": 1,
+        "category_name": "Fresh",
+        "specs": [
+            {"id": 1, "method_name": "Peeled & Sliced"},
+            {"id": 2, "method_name": "Peeled & diced"}
+        ],
+        "current_yield_rate": "0.85"
+    }
+}
+```
+
+**Error (404):**
+```json
+{
+    "message": "No RawMaterial matches the given query.",
+    "error": {
+        "type": "NOT_FOUND",
+        "details": {"detail": "No RawMaterial matches the given query."}
+    },
+    "results": null
 }
 ```
 
@@ -174,6 +192,8 @@ GET /api/materials/3/
 ## 4. Batch Create/Update Materials
 
 **POST** `/api/materials/batch/`
+
+> **Atomic**: If any item fails validation, the entire batch is rejected — no partial writes.
 
 ### Input Data (JSON Array)
 
@@ -189,12 +209,19 @@ GET /api/materials/3/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `message` | string | Summary of the operation |
-| `created` | array | List of newly created materials |
-| `updated` | array | List of updated materials |
-| `errors` | array | List of failed items |
+| `message` | string | Summary: "Created X, Updated Y" |
+| `results.created` | array | List of newly created materials |
+| `results.updated` | array | List of updated materials |
 
-### Sample Input + Output
+On error (400), the entire batch is rejected:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | "Validation failed for N item(s), no changes applied." |
+| `error.type` | string | `"VALIDATION_ERROR"` |
+| `error.details` | array | List of `{index, detail}` per failed item |
+
+### Sample — Success
 
 **Request:**
 ```json
@@ -217,17 +244,49 @@ POST /api/materials/batch/
 ]
 ```
 
-**Response:**
+**Response (200):**
 ```json
 {
-    "message": "Created 1, Updated 1, Failed 0",
-    "created": [
-        {"id": 10, "name": "Potato", "category": 1, "category_name": "Fresh", "specs": [...], "current_yield_rate": "0.85"}
-    ],
-    "updated": [
-        {"id": 5, "name": "Tomato", "category": 1, "category_name": "Fresh", "specs": [], "current_yield_rate": "1.00"}
-    ],
-    "errors": []
+    "message": "Created 1, Updated 1",
+    "error": null,
+    "results": {
+        "created": [
+            {"id": 10, "name": "Potato", "category": 1, "category_name": "Fresh", "specs": [...], "current_yield_rate": "0.85"}
+        ],
+        "updated": [
+            {"id": 5, "name": "Tomato", "category": 1, "category_name": "Fresh", "specs": [], "current_yield_rate": "1.00"}
+        ]
+    }
+}
+```
+
+### Sample — Error (entire batch rejected)
+
+**Request:**
+```json
+POST /api/materials/batch/
+[
+    {"name": "NewItem", "category": 999},
+    {"name": "Potato"}
+]
+```
+
+**Response (400):**
+```json
+{
+    "message": "Validation failed for 1 item(s), no changes applied.",
+    "error": {
+        "type": "VALIDATION_ERROR",
+        "details": [
+            {
+                "index": 0,
+                "detail": {
+                    "category": ["Invalid pk \"999\" - object does not exist."]
+                }
+            }
+        ]
+    },
+    "results": null
 }
 ```
 
@@ -247,10 +306,10 @@ POST /api/materials/batch/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | int | New spec ID |
-| `method_name` | string | Processing method name |
+| `results.id` | int | New spec ID |
+| `results.method_name` | string | Processing method name |
 
-### Sample Input + Output
+### Sample
 
 **Request:**
 ```json
@@ -263,8 +322,12 @@ POST /api/materials/3/specs/
 **Response (201 Created):**
 ```json
 {
-    "id": 5,
-    "method_name": "Diced"
+    "message": "Spec created",
+    "error": null,
+    "results": {
+        "id": 5,
+        "method_name": "Diced"
+    }
 }
 ```
 
@@ -282,7 +345,7 @@ Path parameter `{id}`: Material ID
 
 None (204 No Content)
 
-### Sample Input + Output
+### Sample
 
 ```
 DELETE /api/materials/3/
@@ -305,11 +368,13 @@ DELETE /api/materials/3/
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `raw_material_id` | int | Material ID |
-| `yield_rate` | string | The set yield rate |
-| `effective_date` | string | Date when it becomes effective |
+| `results.raw_material_id` | int | Material ID |
+| `results.raw_material_name` | string | Material name |
+| `results.yield_rate` | string | The set yield rate |
+| `results.effective_date` | string | Date when it becomes effective |
+| `results.created` | bool | Whether a new record was created |
 
-### Sample Input + Output
+### Sample
 
 **Request:**
 ```json
@@ -319,11 +384,32 @@ PUT /api/raw-materials/3/yield-rate/
 }
 ```
 
-**Response:**
+**Response (201):**
 ```json
 {
-    "raw_material_id": 3,
-    "yield_rate": "0.85",
-    "effective_date": "2026-03-03"
+    "message": "Yield rate updated",
+    "error": null,
+    "results": {
+        "raw_material_id": 3,
+        "raw_material_name": "Potato",
+        "yield_rate": "0.85",
+        "effective_date": "2026-03-03",
+        "created": true
+    }
 }
 ```
+
+---
+
+## Error Type Reference
+
+All error responses use the structure `{"type": "...", "details": ...}`:
+
+| HTTP Status | error.type | Description |
+|---|---|---|
+| 400 | `VALIDATION_ERROR` | Field validation failures |
+| 401 | `AUTHENTICATION_ERROR` | Not authenticated |
+| 403 | `PERMISSION_DENIED` | Forbidden |
+| 404 | `NOT_FOUND` | Resource not found |
+| 405 | `METHOD_NOT_ALLOWED` | HTTP method not supported |
+| 5xx | `SERVER_ERROR` | Internal server error |
