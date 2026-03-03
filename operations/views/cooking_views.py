@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.views import success_response, error_response
 from core.models import ClientCompany, Dish
 from ..models import WeeklyMenu, WeeklyMenuDish, DailyCensus
 
@@ -93,7 +94,7 @@ class CookingTodayView(APIView):
                 "dishes": dishes_data,
             })
 
-        return Response(result)
+        return success_response(results=result)
 
 
 class CookingRecipeView(APIView):
@@ -110,7 +111,11 @@ class CookingRecipeView(APIView):
                 'ingredients__raw_material', 'ingredients__processing'
             ).get(id=dish_id)
         except Dish.DoesNotExist:
-            return Response({"error": "Dish not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Dish not found",
+                message="Dish not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         count = int(request.query_params.get("count", 1))
 
@@ -130,7 +135,7 @@ class CookingRecipeView(APIView):
                 "unit": "kg",
             })
 
-        return Response({
+        return success_response(results={
             "dish_id": dish.id,
             "dish_name": dish.name,
             "count": count,

@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.views import success_response, error_response
 from core.models import ClientCompany
 from ..models import (
     DailyCensus, DeliveryOrder, DeliveryItem
@@ -27,7 +28,7 @@ class DeliveryGenerateView(APIView):
     def post(self, request):
         serializer = DeliveryGenerateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return error_response(error=serializer.errors, message="Validation failed")
 
         target_date = serializer.validated_data['date']
         meal_time = serializer.validated_data['meal_time']
@@ -64,7 +65,11 @@ class DeliveryGenerateView(APIView):
 
             results.append(DeliveryOrderSerializer(order).data)
 
-        return Response(results, status=status.HTTP_201_CREATED)
+        return success_response(
+            results=results,
+            message=f"Generated {len(results)} delivery order(s)",
+            http_status=status.HTTP_201_CREATED,
+        )
 
 
 class DeliveryDetailView(APIView):
@@ -78,9 +83,13 @@ class DeliveryDetailView(APIView):
                 'items__region', 'items__diet_category'
             ).get(id=pk)
         except DeliveryOrder.DoesNotExist:
-            return Response({"error": "Delivery order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Delivery order not found",
+                message="Delivery order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
-        return Response(DeliveryOrderSerializer(order).data)
+        return success_response(results=DeliveryOrderSerializer(order).data)
 
 
 class DeliveryByRegionView(APIView):
@@ -92,7 +101,11 @@ class DeliveryByRegionView(APIView):
         try:
             order = DeliveryOrder.objects.get(id=pk)
         except DeliveryOrder.DoesNotExist:
-            return Response({"error": "Delivery order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Delivery order not found",
+                message="Delivery order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = DeliveryItem.objects.filter(
             delivery=order
@@ -110,7 +123,7 @@ class DeliveryByRegionView(APIView):
             for k, v in grouped.items()
         ]
 
-        return Response(result)
+        return success_response(results=result)
 
 
 class DeliveryExportView(APIView):
@@ -122,7 +135,11 @@ class DeliveryExportView(APIView):
         try:
             order = DeliveryOrder.objects.select_related('company').get(id=pk)
         except DeliveryOrder.DoesNotExist:
-            return Response({"error": "Delivery order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Delivery order not found",
+                message="Delivery order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = DeliveryItem.objects.filter(
             delivery=order
@@ -151,4 +168,4 @@ class DeliveryExportView(APIView):
             "grand_total": sum(item.count for item in items),
         }
 
-        return Response(export_data)
+        return success_response(results=export_data)

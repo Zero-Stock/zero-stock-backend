@@ -6,6 +6,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from common.views import success_response, error_response
 from .models import WeeklyMenu, WeeklyMenuDish
 from .serializers import WeeklyMenuSerializer, WeeklyMenuBatchSerializer
 
@@ -118,12 +119,13 @@ class WeeklyMenuViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             menus = serializer.save()
             result_serializer = WeeklyMenuSerializer(menus, many=True)
-            return Response(
-                {
-                    'message': f'成功处理 {len(menus)} 条菜单配置',
-                    'data': result_serializer.data
-                },
-                status=status.HTTP_201_CREATED
+            return success_response(
+                results=result_serializer.data,
+                message=f'成功处理 {len(menus)} 条菜单配置',
+                http_status=status.HTTP_201_CREATED,
             )
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return error_response(
+            error=serializer.errors,
+            message='Validation failed',
+        )

@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.views import success_response, error_response
 from ..models import (
     ProcurementRequest, ProcurementItem,
     ReceivingRecord, ReceivingItem
@@ -24,7 +25,11 @@ class ReceivingTemplateView(APIView):
         try:
             procurement = ProcurementRequest.objects.get(id=procurement_id)
         except ProcurementRequest.DoesNotExist:
-            return Response({"error": "Procurement request not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Procurement request not found",
+                message="Procurement request not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = ProcurementItem.objects.filter(
             request=procurement
@@ -50,7 +55,7 @@ class ReceivingTemplateView(APIView):
             ]
         }
 
-        return Response(template)
+        return success_response(results=template)
 
 
 class ReceivingCreateView(APIView):
@@ -71,13 +76,17 @@ class ReceivingCreateView(APIView):
     def post(self, request):
         serializer = ReceivingCreateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return error_response(error=serializer.errors, message="Validation failed")
 
         data = serializer.validated_data
         try:
             procurement = ProcurementRequest.objects.get(id=data['procurement_id'])
         except ProcurementRequest.DoesNotExist:
-            return Response({"error": "Procurement request not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Procurement request not found",
+                message="Procurement request not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         receiving = ReceivingRecord.objects.create(
             procurement=procurement,
@@ -104,7 +113,11 @@ class ReceivingCreateView(APIView):
             )
 
         result = ReceivingRecordSerializer(receiving).data
-        return Response(result, status=status.HTTP_201_CREATED)
+        return success_response(
+            results=result,
+            message="Receiving record created",
+            http_status=status.HTTP_201_CREATED,
+        )
 
 
 class ReceivingDetailView(APIView):
@@ -118,7 +131,11 @@ class ReceivingDetailView(APIView):
                 'items__raw_material'
             ).get(id=pk)
         except ReceivingRecord.DoesNotExist:
-            return Response({"error": "Receiving record not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Receiving record not found",
+                message="Receiving record not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         serializer = ReceivingRecordSerializer(receiving)
-        return Response(serializer.data)
+        return success_response(results=serializer.data)

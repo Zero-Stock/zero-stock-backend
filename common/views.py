@@ -8,16 +8,71 @@ BaseSearchView — 通用搜索基类
 
 统一响应格式：
 {
-    "total": 42,
-    "page": 1,
-    "page_size": 20,
-    "results": [...]
+    "message": "OK",
+    "error": null,
+    "results": {
+        "total": 42,
+        "page": 1,
+        "page_size": 20,
+        "results": [...]
+    }
 }
 """
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+
+# ───────────────────────── response helpers ─────────────────────────
+
+def success_response(results=None, message="OK", http_status=status.HTTP_200_OK):
+    """
+    Unified success envelope.
+    """
+    return Response(
+        {"message": message, "error": None, "results": results},
+        status=http_status,
+    )
+
+
+_STATUS_TO_ERROR_TYPE = {
+    400: "VALIDATION_ERROR",
+    401: "AUTHENTICATION_ERROR",
+    403: "PERMISSION_DENIED",
+    404: "NOT_FOUND",
+    405: "METHOD_NOT_ALLOWED",
+    429: "RATE_LIMITED",
+}
+
+
+def _detect_error_type(http_status_code: int) -> str:
+    if http_status_code in _STATUS_TO_ERROR_TYPE:
+        return _STATUS_TO_ERROR_TYPE[http_status_code]
+    if 400 <= http_status_code < 500:
+        return "BAD_REQUEST"
+    return "SERVER_ERROR"
+
+
+def error_response(error=None, message="Error", error_type=None,
+                    http_status=status.HTTP_400_BAD_REQUEST):
+    """
+    Unified error envelope.
+
+    If error_type is not provided, it is auto-detected from http_status.
+    """
+    if error_type is None:
+        error_type = _detect_error_type(http_status)
+    return Response(
+        {
+            "message": message,
+            "error": {"type": error_type, "details": error},
+            "results": None,
+        },
+        status=http_status,
+    )
+
+
+# ───────────────────────── base search view ─────────────────────────
 
 class BaseSearchView(APIView):
     """
@@ -65,9 +120,11 @@ class BaseSearchView(APIView):
         # 4) 序列化
         serializer = self.serializer_class(qs, many=True)
 
-        return Response({
-            'total': total,
-            'page': page,
-            'page_size': page_size,
-            'results': serializer.data,
-        })
+        return success_response(
+            results={
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'results': serializer.data,
+            }
+        )

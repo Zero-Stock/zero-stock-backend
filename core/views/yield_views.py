@@ -7,6 +7,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import ValidationError, NotFound, PermissionDenied
 
+from common.views import success_response
 from core.models import RawMaterial, RawMaterialYieldRate
 
 def require_rw(user):
@@ -52,13 +53,14 @@ class RawMaterialYieldRateUpdateView(APIView):
             defaults={"yield_rate": y_dec},
         )
 
-        return Response(
-            {
+        return success_response(
+            results={
                 "raw_material_id": rm.id,
                 "raw_material_name": rm.name,
                 "yield_rate": str(obj.yield_rate),
                 "effective_date": str(obj.effective_date),
                 "created": created,
             },
-            status=status.HTTP_201_CREATED,
+            message="Yield rate updated",
+            http_status=status.HTTP_201_CREATED,
         )

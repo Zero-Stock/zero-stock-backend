@@ -8,6 +8,7 @@ from django.db import transaction
 from django.db import IntegrityError
 from rest_framework.exceptions import ValidationError
 
+from common.views import success_response, error_response
 from .models import (
     DietCategory, RawMaterial, ProcessedMaterial,
     Dish, Supplier, SupplierMaterial, MaterialCategory
@@ -40,7 +41,7 @@ class DietCategoryViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             dishes = Dish.objects.filter(allowed_diets=diet)
             serializer = DishSerializer(dishes, many=True)
-            return Response(serializer.data)
+            return success_response(results=serializer.data)
         else:
             serializer = DietDishesSerializer(data=request.data)
             if serializer.is_valid():
@@ -49,8 +50,8 @@ class DietCategoryViewSet(viewsets.ModelViewSet):
                 for dish in dishes:
                     dish.allowed_diets.add(diet)
                 result = DishSerializer(dishes, many=True)
-                return Response(result.data, status=status.HTTP_200_OK)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return success_response(results=result.data, message="Dishes assigned")
+            return error_response(error=serializer.errors, message="Validation failed")
 
 
 class MaterialCategoryViewSet(viewsets.ModelViewSet):
@@ -105,11 +106,11 @@ class RawMaterialViewSet(mixins.ListModelMixin,
         GET /api/materials/?ordering=-name      → 按名称倒序
         """
         group_by = request.query_params.get('group_by', None)
-        
+
         if group_by and group_by in ('category', 'unit'):
             queryset = self.filter_queryset(self.get_queryset())
             serializer = self.get_serializer(queryset, many=True)
-            
+
             # 按指定字段分组
             grouped = {}
             for item in serializer.data:
@@ -117,16 +118,16 @@ class RawMaterialViewSet(mixins.ListModelMixin,
                 if key not in grouped:
                     grouped[key] = []
                 grouped[key].append(item)
-            
-            return Response(grouped)
-        
+
+            return success_response(results=grouped)
+
         return super().list(request, *args, **kwargs)
     
     @action(detail=True, methods=['post'], url_path='specs')
     def add_spec(self, request, pk=None):
         """
         为指定食材添加加工规格
-        
+
         POST /api/materials/{id}/specs/
         请求体:
         {
@@ -136,22 +137,26 @@ class RawMaterialViewSet(mixins.ListModelMixin,
         """
         material = self.get_object()
         serializer = ProcessedMaterialSerializer(data=request.data)
-        
+
         if serializer.is_valid():
             # 检查是否已存在相同的加工方法
             if ProcessedMaterial.objects.filter(
                 raw_material=material,
                 method_name=serializer.validated_data['method_name']
             ).exists():
-                return Response(
-                    {'error': '该加工方法已存在'},
-                    status=status.HTTP_400_BAD_REQUEST
+                return error_response(
+                    error='该加工方法已存在',
+                    message='该加工方法已存在',
                 )
-            
+
             serializer.save(raw_material=material)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return success_response(
+                results=serializer.data,
+                message='Spec created',
+                http_status=status.HTTP_201_CREATED,
+            )
+
+        return error_response(error=serializer.errors, message='Validation failed')
 
     @action(detail=False, methods=['post'], url_path='batch')
     def batch_save(self, request):
@@ -159,75 +164,82 @@ class RawMaterialViewSet(mixins.ListModelMixin,
         POST /api/materials/batch/
         Body: JSON array
 
+        Atomic: if any item fails validation the entire batch is rejected.
+
         Rules:
         - If id provided -> update by id
         - Else if name matches existing -> update that record
         - Else -> create new
-
-        Notes:
-        - Specs is supported (nested) because RawMaterialSerializer has update().
-        - yield_rate is supported (write-only) and stored into RawMaterialYieldRate.
         """
         if not isinstance(request.data, list):
-            return Response(
-                {"error": "Request body must be a JSON array."},
-                status=status.HTTP_400_BAD_REQUEST
+            return error_response(
+                error="Request body must be a JSON array.",
+                message="Request body must be a JSON array.",
             )
 
-        created, updated, errors = [], [], []
+        # ---- Phase 1: validate all items (no DB writes) ----
+        plans = []   # list of (action, serializer, index)
+        errors = []
 
         for index, item in enumerate(request.data):
             if not isinstance(item, dict):
-                errors.append({"index": index, "errors": "Each item must be an object."})
+                errors.append({"index": index, "detail": "Each item must be an object."})
                 continue
 
             item_id = item.get("id")
             name = (item.get("name") or "").strip()
 
-            # -------- 1) update by id --------
+            # 1) update by id
             if item_id:
                 material = RawMaterial.objects.filter(id=item_id).first()
                 if not material:
-                    errors.append({"index": index, "id": item_id, "errors": "Material not found."})
+                    errors.append({"index": index, "id": item_id, "detail": "Material not found."})
                     continue
-
                 serializer = RawMaterialSerializer(material, data=item, partial=True)
-                if serializer.is_valid():
-                    serializer.save()
-                    updated.append(serializer.data)
-                else:
-                    errors.append({"index": index, "id": item_id, "errors": serializer.errors})
+                if not serializer.is_valid():
+                    errors.append({"index": index, "id": item_id, "detail": serializer.errors})
+                    continue
+                plans.append(("updated", serializer, index))
                 continue
 
-            # -------- 2) update by name if exists --------
+            # 2) update by name
             if name:
                 material = RawMaterial.objects.filter(name=name).first()
                 if material:
                     serializer = RawMaterialSerializer(material, data=item, partial=True)
-                    if serializer.is_valid():
-                        serializer.save()
-                        updated.append(serializer.data)
-                    else:
-                        errors.append({"index": index, "name": name, "errors": serializer.errors})
+                    if not serializer.is_valid():
+                        errors.append({"index": index, "name": name, "detail": serializer.errors})
+                        continue
+                    plans.append(("updated", serializer, index))
                     continue
 
-            # -------- 3) create new --------
+            # 3) create new
             serializer = RawMaterialSerializer(data=item)
-            if serializer.is_valid():
-                serializer.save()
-                created.append(serializer.data)
-            else:
-                errors.append({"index": index, "errors": serializer.errors})
+            if not serializer.is_valid():
+                errors.append({"index": index, "detail": serializer.errors})
+                continue
+            plans.append(("created", serializer, index))
 
-        ok = len(errors) == 0
-        return Response(
-            {
-                "message": f"Created {len(created)}, Updated {len(updated)}, Failed {len(errors)}",
-                "created": created,
-                "updated": updated,
-                "errors": errors,
-            },
-            status=status.HTTP_200_OK if ok else status.HTTP_207_MULTI_STATUS
+        # If any errors, reject entire batch
+        if errors:
+            return error_response(
+                error=errors,
+                message=f"Validation failed for {len(errors)} item(s), no changes applied.",
+            )
+
+        # ---- Phase 2: execute inside transaction ----
+        created, updated = [], []
+        with transaction.atomic():
+            for action_type, serializer, index in plans:
+                serializer.save()
+                if action_type == "created":
+                    created.append(serializer.data)
+                else:
+                    updated.append(serializer.data)
+
+        return success_response(
+            results={"created": created, "updated": updated},
+            message=f"Created {len(created)}, Updated {len(updated)}",
         )
 
 
@@ -259,7 +271,7 @@ class DishViewSet(viewsets.ModelViewSet):
             'ingredients__raw_material', 'ingredients__processing'
         ).all().order_by('name')
         serializer = DishPrintSerializer(dishes, many=True)
-        return Response(serializer.data)
+        return success_response(results=serializer.data)
 
 
 class SupplierViewSet(viewsets.ModelViewSet):
@@ -312,3 +324,4 @@ class SupplierMaterialViewSet(viewsets.ModelViewSet):
             return super().create(request, *args, **kwargs)
         except IntegrityError:
             raise ValidationError({"detail": "This supplier already has this raw material."})
+

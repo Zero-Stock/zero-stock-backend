@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 
+from common.views import success_response, error_response
 from ..models import DailyCensus
 from ..serializers import DailyCensusSerializer, DailyCensusBatchSerializer
 
@@ -74,7 +75,10 @@ class DailyCensusBatchView(APIView):
                 except IntegrityError:
                     raise ValidationError({"detail": "Error while saving census batch."})
 
-        return Response({"date": str(date), "created": created, "updated": updated}, status=status.HTTP_200_OK)
+        return success_response(
+            results={"date": str(date), "created": created, "updated": updated},
+            message=f"Created {created}, Updated {updated}",
+        )
 
 
 class DailyCensusSummaryView(APIView):
@@ -106,8 +110,8 @@ class DailyCensusSummaryView(APIView):
             .order_by("diet_category_id")
         )
 
-        return Response(
-            {
+        return success_response(
+            results={
                 "date": date,
                 "start": start,
                 "end": end,

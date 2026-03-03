@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from common.views import success_response, error_response
+
 
 def build_user_payload(user):
     """
@@ -54,7 +56,7 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(build_user_payload(request.user))
+        return success_response(results=build_user_payload(request.user))
 
 
 class LogoutView(APIView):
@@ -69,10 +71,10 @@ class LogoutView(APIView):
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh = request.data.get("refresh")
         if not refresh:
-            return Response({"error": "refresh token required"}, status=400)
+            return error_response(error="refresh token required", message="refresh token required")
         try:
             token = RefreshToken(refresh)
             token.blacklist()
         except Exception:
             pass  # Token may already be blacklisted or invalid
-        return Response({"detail": "Logged out."}, status=200)
+        return success_response(message="Logged out.")

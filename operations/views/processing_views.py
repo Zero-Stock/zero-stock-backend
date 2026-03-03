@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from common.views import success_response, error_response
 from core.models import ClientCompany
 from ..models import (
     WeeklyMenu, WeeklyMenuDish, DailyCensus,
@@ -28,7 +29,7 @@ class ProcessingGenerateView(APIView):
     def post(self, request):
         serializer = ProcessingGenerateSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return error_response(error=serializer.errors, message="Validation failed")
 
         target_date = serializer.validated_data['date']
         day_of_week = target_date.isoweekday()  # 1=Monday ... 7=Sunday
@@ -90,7 +91,11 @@ class ProcessingGenerateView(APIView):
 
             results.append(ProcessingOrderSerializer(order).data)
 
-        return Response(results, status=status.HTTP_201_CREATED)
+        return success_response(
+            results=results,
+            message=f"Generated {len(results)} processing order(s)",
+            http_status=status.HTTP_201_CREATED,
+        )
 
 
 class ProcessingDetailView(APIView):
@@ -104,9 +109,13 @@ class ProcessingDetailView(APIView):
                 'items__raw_material', 'items__processed_material', 'items__dish'
             ).get(id=pk)
         except ProcessingOrder.DoesNotExist:
-            return Response({"error": "Processing order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Processing order not found",
+                message="Processing order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
-        return Response(ProcessingOrderSerializer(order).data)
+        return success_response(results=ProcessingOrderSerializer(order).data)
 
 
 class ProcessingByMaterialView(APIView):
@@ -118,7 +127,11 @@ class ProcessingByMaterialView(APIView):
         try:
             order = ProcessingOrder.objects.get(id=pk)
         except ProcessingOrder.DoesNotExist:
-            return Response({"error": "Processing order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Processing order not found",
+                message="Processing order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = ProcessingItem.objects.filter(order=order).select_related(
             'raw_material', 'processed_material', 'dish'
@@ -147,7 +160,7 @@ class ProcessingByMaterialView(APIView):
                 })
             result.append({"material": mat_name, "methods": methods})
 
-        return Response(result)
+        return success_response(results=result)
 
 
 class ProcessingByDishView(APIView):
@@ -159,7 +172,11 @@ class ProcessingByDishView(APIView):
         try:
             order = ProcessingOrder.objects.get(id=pk)
         except ProcessingOrder.DoesNotExist:
-            return Response({"error": "Processing order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Processing order not found",
+                message="Processing order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = ProcessingItem.objects.filter(order=order).select_related(
             'raw_material', 'processed_material', 'dish'
@@ -175,7 +192,7 @@ class ProcessingByDishView(APIView):
             })
 
         result = [{"dish": k, "ingredients": v} for k, v in grouped.items()]
-        return Response(result)
+        return success_response(results=result)
 
 
 class ProcessingByWorkshopView(APIView):
@@ -187,7 +204,11 @@ class ProcessingByWorkshopView(APIView):
         try:
             order = ProcessingOrder.objects.get(id=pk)
         except ProcessingOrder.DoesNotExist:
-            return Response({"error": "Processing order not found"}, status=status.HTTP_404_NOT_FOUND)
+            return error_response(
+                error="Processing order not found",
+                message="Processing order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
 
         items = ProcessingItem.objects.filter(order=order).select_related(
             'raw_material', 'processed_material', 'dish'
@@ -205,4 +226,4 @@ class ProcessingByWorkshopView(APIView):
             })
 
         result = [{"workshop": k, "items": v} for k, v in grouped.items()]
-        return Response(result)
+        return success_response(results=result)

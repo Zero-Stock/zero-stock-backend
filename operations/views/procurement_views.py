@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.exceptions import PermissionDenied, NotFound, ValidationError
 from decimal import Decimal
 from collections import defaultdict
+
+from common.views import success_response, error_response
 from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu
 from core.models import DishIngredient, SupplierMaterial, RawMaterialYieldRate
 from ..serializers import ProcurementRequestSerializer, ProcurementItemSerializer, ProcurementGenerateSerializer
@@ -74,7 +76,7 @@ class ProcurementItemsView(APIView):
 
         group_by = request.query_params.get("group_by")
         if not group_by:
-            return Response(ProcurementItemSerializer(qs, many=True).data)
+            return success_response(results=ProcurementItemSerializer(qs, many=True).data)
 
         if group_by == "supplier":
             rows = (
@@ -82,7 +84,7 @@ class ProcurementItemsView(APIView):
                 .annotate(total=Sum("total_gross_quantity"))
                 .order_by("supplier__name")
             )
-            return Response([
+            return success_response(results=[
                 {
                     "supplier": r["supplier__name"] or "未分配",
                     "total_gross_quantity": str(r["total"] or 0),
@@ -96,7 +98,7 @@ class ProcurementItemsView(APIView):
                 .annotate(total=Sum("total_gross_quantity"))
                 .order_by("raw_material__category__name")
             )
-            return Response([
+            return success_response(results=[
                 {
                     "category": r["raw_material__category__name"],
                     "total_gross_quantity": str(r["total"] or 0),
@@ -119,11 +121,17 @@ class ProcurementConfirmView(APIView):
             raise NotFound("Procurement request not found.")
 
         if pr.status == "CONFIRMED":
-            return Response({"detail": "Already confirmed."}, status=status.HTTP_200_OK)
+            return success_response(
+                results={"id": pr.id, "status": pr.status},
+                message="Already confirmed.",
+            )
 
         pr.status = "CONFIRMED"
         pr.save(update_fields=["status"])
-        return Response({"id": pr.id, "status": pr.status})
+        return success_response(
+            results={"id": pr.id, "status": pr.status},
+            message="Confirmed",
+        )
 
 
 class ProcurementGenerateView(APIView):
@@ -273,7 +281,11 @@ class ProcurementGenerateView(APIView):
             pr.status = "PENDING"
             pr.save(update_fields=["status"])
 
-        return Response(ProcurementRequestSerializer(pr).data, status=status.HTTP_201_CREATED)
+        return success_response(
+            results=ProcurementRequestSerializer(pr).data,
+            message="Procurement request generated",
+            http_status=status.HTTP_201_CREATED,
+        )
 
 
 DAY_NAMES_CN = {
@@ -320,7 +332,7 @@ class ProcurementSheetView(APIView):
 
         day_cn = DAY_NAMES_CN.get(pr.target_date.weekday(), "")
 
-        return Response({
+        return success_response(results={
             "id": pr.id,
             "date": str(pr.target_date),
             "day_of_week": day_cn,
@@ -384,7 +396,7 @@ class ProcurementTemplateView(APIView):
                 "available_suppliers": available_suppliers,
             })
 
-        return Response({
+        return success_response(results={
             "id": pr.id,
             "date": str(pr.target_date),
             "status": pr.status,
@@ -466,4 +478,7 @@ class ProcurementAssignSuppliersView(APIView):
             pr.status = "CONFIRMED"
             pr.save(update_fields=["status"])
 
-        return Response(ProcurementRequestSerializer(pr).data)
+        return success_response(
+            results=ProcurementRequestSerializer(pr).data,
+            message="Suppliers assigned and confirmed",
+        )
