@@ -45,10 +45,7 @@ class ReceivingTemplateView(APIView):
                     "raw_material_id": item.raw_material.id,
                     "raw_material_name": item.raw_material.name,
                     "expected_quantity": float(item.total_gross_quantity),
-                    "unit": item.raw_material.unit,
-                    "spec": item.raw_material.spec,
-                    "supplier": item.raw_material.supplier,
-                    "category": item.raw_material.category,
+                    "category": item.raw_material.category.name if item.raw_material.category else None,
                     "actual_quantity": 0,
                 }
                 for item in items

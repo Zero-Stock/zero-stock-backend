@@ -216,7 +216,7 @@ class ProcessingByWorkshopView(APIView):
 
         grouped = defaultdict(list)
         for item in items:
-            category = item.raw_material.category or "Other"
+            category = item.raw_material.category.name if item.raw_material.category else "Other"
             grouped[category].append({
                 "dish": item.dish.name,
                 "material": item.raw_material.name,
