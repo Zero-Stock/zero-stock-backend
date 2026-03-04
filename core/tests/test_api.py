@@ -60,10 +60,10 @@ class MaterialCategoryAPITest(APITestBase):
         self.assertEqual(r.status_code, 204)
 
     def test_delete_in_use_fails(self):
-        from django.db.models import ProtectedError
         RawMaterial.objects.create(name="InUseMat", category=self.category)
-        with self.assertRaises(ProtectedError):
-            self.client.delete(f"/api/material-categories/{self.category.id}/")
+        r = self.client.delete(f"/api/material-categories/{self.category.id}/")
+        self.assertEqual(r.status_code, 409)
+        self.assertEqual(r.data["error"]["type"], "PROTECTED_ERROR")
 
 
 class RawMaterialAPITest(APITestBase):

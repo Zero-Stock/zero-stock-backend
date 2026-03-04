@@ -43,6 +43,10 @@ class EnvelopeRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         response = renderer_context.get("response") if renderer_context else None
 
+        # 204 No Content must have an empty body (Cloud Run enforces this strictly)
+        if response and response.status_code == 204:
+            return b""
+
         # Already wrapped by success_response / error_response helpers
         if isinstance(data, dict) and set(data.keys()) == {"message", "error", "results"}:
             # Skip double-wrapping

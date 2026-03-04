@@ -82,12 +82,14 @@ class RawMaterialSerializer(serializers.ModelSerializer):
 
     def _upsert_specs(self, raw_material, specs_data):
         """
-        Add missing processing methods only.
-        - specs_data == None: do nothing (means client didn't send specs)
-        - specs_data == []: treat as "send empty": still do nothing (we do NOT delete existing)
-          (If you want "empty means clear all", tell me, we can change it.)
+        Replace all existing specs with the new list.
+        - specs_data == None or []: clear all existing specs
+        - specs_data == [...]: delete old specs, create new ones
         """
-        if specs_data is None:
+        # Delete all existing specs first
+        raw_material.specs.all().delete()
+
+        if not specs_data:
             return
 
         seen = set()
@@ -100,7 +102,7 @@ class RawMaterialSerializer(serializers.ModelSerializer):
                 continue
             seen.add(method)
 
-            ProcessedMaterial.objects.get_or_create(
+            ProcessedMaterial.objects.create(
                 raw_material=raw_material,
                 method_name=method
             )
