@@ -59,7 +59,7 @@ class RawMaterialSerializer(serializers.ModelSerializer):
         model = RawMaterial
         fields = [
             "id", "name", "category", "category_name",
-            "specs", "yield_rate", "current_yield_rate"
+            "specs", "yield_rate", "current_yield_rate", "stock"
         ]
 
     # ---------- helpers ----------

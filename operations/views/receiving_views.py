@@ -2,6 +2,8 @@
 """
 Receiving record views.
 """
+from datetime import datetime, time
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -44,7 +46,7 @@ class ReceivingTemplateView(APIView):
                 {
                     "raw_material_id": item.raw_material.id,
                     "raw_material_name": item.raw_material.name,
-                    "expected_quantity": float(item.total_gross_quantity),
+                    "expected_quantity": float(item.purchase_quantity),
                     "category": item.raw_material.category.name if item.raw_material.category else None,
                     "actual_quantity": 0,
                 }
@@ -59,6 +61,12 @@ class ReceivingCreateView(APIView):
     """
     POST /api/receiving/
     Record actual received quantities.
+
+    On first receiving for a procurement:
+    - Sets procurement status to CONFIRMED
+    - Updates RawMaterial.default_supplier from procurement items
+
+    Deadline: cannot create/update after target_date 23:59.
 
     Request body:
     {
@@ -85,6 +93,17 @@ class ReceivingCreateView(APIView):
                 http_status=status.HTTP_404_NOT_FOUND,
             )
 
+        # Deadline check: cannot receive after target_date 23:59
+        deadline = datetime.combine(procurement.target_date, time(23, 59, 59))
+        if timezone.is_aware(timezone.now()):
+            deadline = timezone.make_aware(deadline)
+        if timezone.now() > deadline:
+            return error_response(
+                error="Receiving deadline passed",
+                message=f"收货截止时间已过 ({procurement.target_date} 23:59)",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
         receiving = ReceivingRecord.objects.create(
             procurement=procurement,
             company=procurement.company,
@@ -94,7 +113,7 @@ class ReceivingCreateView(APIView):
 
         # Build expected quantity lookup from procurement items
         proc_items = {
-            pi.raw_material_id: pi.total_gross_quantity
+            pi.raw_material_id: pi.purchase_quantity
             for pi in ProcurementItem.objects.filter(request=procurement)
         }
 
@@ -109,10 +128,34 @@ class ReceivingCreateView(APIView):
                 notes=item_data.get('notes', ''),
             )
 
+        # On first receiving: set procurement to CONFIRMED + update default_supplier
+        if procurement.status != "CONFIRMED":
+            procurement.status = "CONFIRMED"
+            procurement.save(update_fields=["status"])
+
+            # Update RawMaterial.default_supplier for items with a supplier
+            from core.models import RawMaterial
+            for pi in ProcurementItem.objects.filter(
+                request=procurement, supplier__isnull=False
+            ).select_related("supplier"):
+                RawMaterial.objects.filter(id=pi.raw_material_id).update(
+                    default_supplier=pi.supplier
+                )
+
+        # --- Auto-update inventory on receiving confirm ---
+        from ..inventory_service import update_inventory_on_receiving_confirm
+        updated_list, warnings = update_inventory_on_receiving_confirm(receiving)
+
+        msg = "Receiving record created"
+        if warnings:
+            msg += "。库存警告: " + "; ".join(warnings)
+
         result = ReceivingRecordSerializer(receiving).data
+        result["inventory_updates"] = updated_list
+
         return success_response(
             results=result,
-            message="Receiving record created",
+            message=msg,
             http_status=status.HTTP_201_CREATED,
         )
 

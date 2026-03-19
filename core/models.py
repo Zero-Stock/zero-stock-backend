@@ -81,6 +81,17 @@ class RawMaterial(models.Model):
     """
     name = models.CharField(max_length=100, unique=True, verbose_name="Material Name")
     category = models.ForeignKey(MaterialCategory, on_delete=models.PROTECT, verbose_name="Category")
+    stock = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0,
+        verbose_name="库存(kg)",
+        help_text="当前库存量，单位 kg"
+    )
+    default_supplier = models.ForeignKey(
+        'Supplier', on_delete=models.SET_NULL,
+        null=True, blank=True,
+        verbose_name="默认供应商",
+        help_text="上次收货确认时使用的供应商，下次生成采购单时自动预填"
+    )
 
     def __str__(self):
         return self.name

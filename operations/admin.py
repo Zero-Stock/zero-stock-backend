@@ -27,7 +27,7 @@ class DailyCensusAdmin(admin.ModelAdmin):
 
 class ProcurementItemInline(admin.TabularInline):
     model = ProcurementItem
-    readonly_fields = ('raw_material', 'total_gross_quantity', 'notes')
+    readonly_fields = ('raw_material', 'demand_quantity', 'stock_quantity', 'purchase_quantity', 'notes')
     extra = 0
     can_delete = False
 

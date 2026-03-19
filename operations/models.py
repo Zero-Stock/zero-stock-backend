@@ -119,17 +119,18 @@ class DailyCensus(models.Model):
 class ProcurementRequest(models.Model):
     """
     [OUTPUT] Purchase Order Header.
+    Status flow: CREATED → SUBMITTED → CONFIRMED
     """
     STATUS_CHOICES = (
-        ('DRAFT', 'Draft (Calculating)'),
-        ('PENDING', 'Pending Supplier Selection'),
-        ('CONFIRMED', 'Confirmed (Sent)'),
+        ('CREATED', 'Created (Generated)'),
+        ('SUBMITTED', 'Submitted (Pending Receiving)'),
+        ('CONFIRMED', 'Confirmed (Receiving Done)'),
     )
 
     company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
     target_date = models.DateField(verbose_name="For Usage Date")
     created_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='DRAFT')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='CREATED')
 
     def __str__(self):
         return f"PO-{self.target_date}-{self.company.code}"
@@ -139,24 +140,26 @@ class ProcurementItem(models.Model):
     """
     [OUTPUT] Calculated Ingredients.
     Logic: Census(Count) * WeeklyMenu(Dishes) * Dish(Recipe) / Yield
-    Stores total + AM/PM split, plus supplier assignment info.
+    Tracks demand, current stock snapshot, and purchase quantity.
     """
     request = models.ForeignKey(ProcurementRequest, on_delete=models.CASCADE, related_name='items')
     raw_material = models.ForeignKey(RawMaterial, on_delete=models.CASCADE)
 
-    total_gross_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Qty (kg)")
-    am_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="AM Qty (B+L)")
-    pm_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="PM Qty (D)")
+    # Quantities in kg
+    demand_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="需求量(kg)")
+    stock_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="库存快照(kg)")
+    purchase_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name="采购量(kg)")
 
-    # Supplier assignment (filled in step 2)
+    # Supplier assignment (pre-filled from default_supplier, modifiable)
     supplier = models.ForeignKey(
         'core.Supplier', on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name="供应商"
     )
     supplier_unit_name = models.CharField(max_length=20, blank=True, default='', verbose_name="供应商单位")
-    supplier_unit_qty = models.DecimalField(
+    supplier_kg_per_unit = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
-        verbose_name="供应商单位数量"
+        verbose_name="每单位kg数",
+        help_text="用于 kg ↔ 供应商单位换算"
     )
     supplier_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,

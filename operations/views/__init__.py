@@ -9,7 +9,7 @@ from .procurement_views import (
     ProcurementListView,
     ProcurementDetailView,
     ProcurementItemsView,
-    ProcurementConfirmView,
+    ProcurementSubmitView,
     ProcurementGenerateView,
     ProcurementSheetView,
     ProcurementTemplateView,

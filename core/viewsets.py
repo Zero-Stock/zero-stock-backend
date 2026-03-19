@@ -158,6 +158,41 @@ class RawMaterialViewSet(mixins.ListModelMixin,
 
         return error_response(error=serializer.errors, message='Validation failed')
 
+    @action(detail=True, methods=['post'], url_path='stock')
+    def update_stock(self, request, pk=None):
+        """
+        POST /api/materials/{id}/stock/
+        Body: {"stock": 100.50}
+        手动更新指定原料的库存值
+        """
+        material = self.get_object()
+        stock_value = request.data.get("stock")
+        if stock_value is None:
+            return error_response(
+                error="stock field is required",
+                message="stock field is required",
+            )
+        try:
+            from decimal import Decimal, InvalidOperation
+            stock_value = Decimal(str(stock_value))
+            if stock_value < 0:
+                return error_response(
+                    error="stock must be >= 0",
+                    message="stock must be >= 0",
+                )
+        except (InvalidOperation, ValueError):
+            return error_response(
+                error="Invalid stock value",
+                message="Invalid stock value",
+            )
+
+        material.stock = stock_value
+        material.save(update_fields=["stock"])
+        return success_response(
+            results={"id": material.id, "name": material.name, "stock": str(material.stock)},
+            message=f"Stock updated to {material.stock} kg",
+        )
+
     @action(detail=False, methods=['post'], url_path='batch')
     def batch_save(self, request):
         """

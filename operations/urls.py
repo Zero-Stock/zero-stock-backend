@@ -9,7 +9,7 @@ from .views import (
     DailyCensusListView, DailyCensusBatchView, DailyCensusSummaryView,
     # Procurement
     ProcurementGenerateView, ProcurementListView,
-    ProcurementDetailView, ProcurementItemsView, ProcurementConfirmView,
+    ProcurementDetailView, ProcurementItemsView, ProcurementSubmitView,
     ProcurementSheetView, ProcurementTemplateView, ProcurementAssignSuppliersView,
     # Receiving
     ReceivingTemplateView, ReceivingCreateView, ReceivingDetailView,
@@ -47,7 +47,7 @@ urlpatterns = [
     path("procurement/", ProcurementListView.as_view(), name="procurement-list"),
     path("procurement/<int:pk>/", ProcurementDetailView.as_view(), name="procurement-detail"),
     path("procurement/<int:pk>/items/", ProcurementItemsView.as_view(), name="procurement-items"),
-    path("procurement/<int:pk>/confirm/", ProcurementConfirmView.as_view(), name="procurement-confirm"),
+    path("procurement/<int:pk>/submit/", ProcurementSubmitView.as_view(), name="procurement-submit"),
     path("procurement/<int:pk>/sheet/", ProcurementSheetView.as_view(), name="procurement-sheet"),
     path("procurement/template/", ProcurementTemplateView.as_view(), name="procurement-template"),
     path("procurement/assign-suppliers/", ProcurementAssignSuppliersView.as_view(), name="procurement-assign-suppliers"),

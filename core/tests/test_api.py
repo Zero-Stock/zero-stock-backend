@@ -528,3 +528,67 @@ class DietSearchAPITest(APITestBase):
     def test_search_empty(self):
         r = self.client.post("/api/diets/search/", {}, format="json")
         self.assertEqual(r.status_code, 200)
+
+
+# ---- Inventory / Stock API ----
+
+class MaterialStockAPITest(APITestBase):
+    def test_material_has_stock_field(self):
+        """GET /api/materials/{id}/ should return stock field."""
+        mat = RawMaterial.objects.create(name="StockMat", category=self.category)
+        r = self.client.get(f"/api/materials/{mat.id}/")
+        self.assertEqual(r.status_code, 200)
+        results = r.json()["results"]
+        self.assertIn("stock", results)
+        self.assertEqual(results["stock"], "0.00")
+
+    def test_update_stock_via_endpoint(self):
+        """POST /api/materials/{id}/stock/ should update stock."""
+        mat = RawMaterial.objects.create(name="StockUpdate", category=self.category)
+        r = self.client.post(
+            f"/api/materials/{mat.id}/stock/",
+            {"stock": "100.50"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 200)
+        mat.refresh_from_db()
+        self.assertEqual(mat.stock, Decimal("100.50"))
+
+    def test_update_stock_negative_rejected(self):
+        """Stock cannot be set to a negative value."""
+        mat = RawMaterial.objects.create(name="StockNeg", category=self.category)
+        r = self.client.post(
+            f"/api/materials/{mat.id}/stock/",
+            {"stock": "-10"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_update_stock_missing_field(self):
+        mat = RawMaterial.objects.create(name="StockMissing", category=self.category)
+        r = self.client.post(
+            f"/api/materials/{mat.id}/stock/", {}, format="json"
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_update_stock_invalid_value(self):
+        mat = RawMaterial.objects.create(name="StockInvalid", category=self.category)
+        r = self.client.post(
+            f"/api/materials/{mat.id}/stock/",
+            {"stock": "abc"},
+            format="json",
+        )
+        self.assertEqual(r.status_code, 400)
+
+    def test_batch_create_with_stock(self):
+        """Batch create should support stock field."""
+        data = [
+            {"name": "BatchStock1", "category": self.category.id, "stock": "50.00"},
+            {"name": "BatchStock2", "category": self.category.id, "stock": "25.00"},
+        ]
+        r = self.client.post("/api/materials/batch/", data, format="json")
+        self.assertEqual(r.status_code, 200)
+        m1 = RawMaterial.objects.get(name="BatchStock1")
+        m2 = RawMaterial.objects.get(name="BatchStock2")
+        self.assertEqual(m1.stock, Decimal("50.00"))
+        self.assertEqual(m2.stock, Decimal("25.00"))

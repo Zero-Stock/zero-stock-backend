@@ -1,4 +1,5 @@
 # operations/views/procurement_views.py
+import math
 from django.db.models import Sum
 from django.db import transaction
 from rest_framework import generics, status
@@ -19,10 +20,6 @@ def require_rw(user):
     if getattr(user.profile, "role", "RO") != "RW":
         raise PermissionDenied("RW role required.")
 
-
-def meal_to_period(meal_type: str) -> str:
-    """B/L -> AM (morning), D -> PM (afternoon)"""
-    return "PM" if meal_type == "D" else "AM"
 
 def get_yield_rate_for(raw_material_id: int, target_date):
     """
@@ -81,13 +78,13 @@ class ProcurementItemsView(APIView):
         if group_by == "supplier":
             rows = (
                 qs.values("supplier__name")
-                .annotate(total=Sum("total_gross_quantity"))
+                .annotate(total=Sum("purchase_quantity"))
                 .order_by("supplier__name")
             )
             return success_response(results=[
                 {
                     "supplier": r["supplier__name"] or "未分配",
-                    "total_gross_quantity": str(r["total"] or 0),
+                    "purchase_quantity": str(r["total"] or 0),
                 }
                 for r in rows
             ])
@@ -95,13 +92,13 @@ class ProcurementItemsView(APIView):
         if group_by == "category":
             rows = (
                 qs.values("raw_material__category__name")
-                .annotate(total=Sum("total_gross_quantity"))
+                .annotate(total=Sum("purchase_quantity"))
                 .order_by("raw_material__category__name")
             )
             return success_response(results=[
                 {
                     "category": r["raw_material__category__name"],
-                    "total_gross_quantity": str(r["total"] or 0),
+                    "purchase_quantity": str(r["total"] or 0),
                 }
                 for r in rows
             ])
@@ -109,7 +106,11 @@ class ProcurementItemsView(APIView):
         raise ValidationError({"group_by": "Must be supplier or category."})
 
 
-class ProcurementConfirmView(APIView):
+class ProcurementSubmitView(APIView):
+    """
+    POST /api/procurement/{pk}/submit/
+    Submit a CREATED procurement → SUBMITTED.
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
@@ -120,17 +121,17 @@ class ProcurementConfirmView(APIView):
         if not pr:
             raise NotFound("Procurement request not found.")
 
-        if pr.status == "CONFIRMED":
+        if pr.status != "CREATED":
             return success_response(
                 results={"id": pr.id, "status": pr.status},
-                message="Already confirmed.",
+                message=f"Cannot submit: current status is {pr.status}.",
             )
 
-        pr.status = "CONFIRMED"
+        pr.status = "SUBMITTED"
         pr.save(update_fields=["status"])
         return success_response(
             results={"id": pr.id, "status": pr.status},
-            message="Confirmed",
+            message="Submitted",
         )
 
 
@@ -140,8 +141,8 @@ class ProcurementGenerateView(APIView):
     Body: { "date": "YYYY-MM-DD" }
 
     Generates a procurement request for the given date covering B/L/D meals.
-    Tracks AM (Breakfast + Lunch) and PM (Dinner) quantities separately
-    for the sheet view format.
+    Factors in current stock. Pre-fills supplier from RawMaterial.default_supplier.
+    Status: CREATED.
     """
     permission_classes = [IsAuthenticated]
 
@@ -171,19 +172,18 @@ class ProcurementGenerateView(APIView):
 
         meal_types = ["B", "L", "D"]
 
-        # 2) build totals per raw_material with AM/PM split
-        # raw_material_id -> {"gross": D, "am": D, "pm": D, "notes": [str], "raw_material": obj}
+        # 2) build demand totals per raw_material
+        # raw_material_id -> {"demand": Decimal, "notes": [str], "raw_material": obj}
         totals = {}
 
-        def add_gross(raw_material, gross_qty: Decimal, note: str, period: str):
+        def add_demand(raw_material, gross_qty: Decimal, note: str):
             rid = raw_material.id
             if rid not in totals:
                 totals[rid] = {
-                    "gross": Decimal("0"), "am": Decimal("0"), "pm": Decimal("0"),
+                    "demand": Decimal("0"),
                     "notes": [], "raw_material": raw_material,
                 }
-            totals[rid]["gross"] += gross_qty
-            totals[rid][period.lower()] += gross_qty
+            totals[rid]["demand"] += gross_qty
             totals[rid]["notes"].append(note)
 
         def get_dishes_for(diet_id: int, meal_type: str):
@@ -208,13 +208,12 @@ class ProcurementGenerateView(APIView):
                 return [(md.dish, md.quantity) for md in menu_dishes]
             return []
 
-        # 3) compute
+        # 3) compute demand
         for diet_id, people in diet_counts.items():
             if people <= 0:
                 continue
 
             for meal in meal_types:
-                period = meal_to_period(meal)
                 dishes = get_dishes_for(diet_id, meal)
                 if not dishes:
                     continue
@@ -227,10 +226,10 @@ class ProcurementGenerateView(APIView):
                     )
                     for ing in recipe_rows:
                         raw = ing.raw_material
-                        processing = ing.processing 
+                        processing = ing.processing
                         yield_rate = get_yield_rate_for(raw.id, target_date)
                         if yield_rate <= 0:
-                            #method_name = processing.method_name if processing else "N/A"
+                            method_name = processing.method_name if processing else "N/A"
                             raise ValidationError(
                                 {"detail": f"Invalid yield_rate for {raw.name} [{method_name}]."}
                             )
@@ -245,7 +244,7 @@ class ProcurementGenerateView(APIView):
                             f"| {dish.name} x{dish_qty} | {raw.name}[{method_name}] "
                             f"net={ing.net_quantity}*{dish_qty} * {people} / yield={yield_rate} => gross={total_gross}"
                         )
-                        add_gross(raw, total_gross, note, period)
+                        add_demand(raw, total_gross, note)
 
         if not totals:
             raise ValidationError({"detail": "No procurement items generated. Check menu/recipes."})
@@ -253,33 +252,52 @@ class ProcurementGenerateView(APIView):
         # 4) write to DB
         with transaction.atomic():
             existing = ProcurementRequest.objects.filter(company_id=company_id, target_date=target_date).first()
-            if existing and existing.status == "CONFIRMED":
-                raise ValidationError({"detail": "Procurement request already CONFIRMED. Cannot regenerate."})
+            if existing and existing.status in ("SUBMITTED", "CONFIRMED"):
+                raise ValidationError(
+                    {"detail": f"Procurement request already {existing.status}. Cannot regenerate."}
+                )
 
             if existing:
                 pr = existing
                 ProcurementItem.objects.filter(request=pr).delete()
-                pr.status = "DRAFT"
+                pr.status = "CREATED"
                 pr.save(update_fields=["status"])
             else:
                 pr = ProcurementRequest.objects.create(
-                    company_id=company_id, target_date=target_date, status="PENDING"
+                    company_id=company_id, target_date=target_date, status="CREATED"
                 )
 
             items = []
             for rid, data in totals.items():
+                raw = data["raw_material"]
+                demand = data["demand"]
+                stock = raw.stock or Decimal("0")
+                purchase = max(demand - stock, Decimal("0"))
+
+                # Pre-fill supplier from RawMaterial.default_supplier
+                supplier_fields = {}
+                if raw.default_supplier_id:
+                    sm = SupplierMaterial.objects.filter(
+                        supplier_id=raw.default_supplier_id, raw_material_id=rid
+                    ).first()
+                    if sm:
+                        supplier_fields = {
+                            "supplier_id": raw.default_supplier_id,
+                            "supplier_unit_name": sm.unit_name,
+                            "supplier_kg_per_unit": sm.kg_per_unit,
+                            "supplier_price": sm.price,
+                        }
+
                 items.append(ProcurementItem(
                     request=pr,
-                    raw_material=data["raw_material"],
-                    total_gross_quantity=data["gross"],
-                    am_quantity=data["am"],
-                    pm_quantity=data["pm"],
+                    raw_material=raw,
+                    demand_quantity=demand,
+                    stock_quantity=stock,
+                    purchase_quantity=purchase,
                     notes="\n".join(data["notes"])[:5000],
+                    **supplier_fields,
                 ))
             ProcurementItem.objects.bulk_create(items)
-
-            pr.status = "PENDING"
-            pr.save(update_fields=["status"])
 
         return success_response(
             results=ProcurementRequestSerializer(pr).data,
@@ -297,7 +315,7 @@ DAY_NAMES_CN = {
 class ProcurementSheetView(APIView):
     """
     GET /api/procurement/{id}/sheet/
-    Returns the final procurement list with supplier unit info.
+    Returns the final procurement list with dual-unit display.
     """
     permission_classes = [IsAuthenticated]
 
@@ -315,18 +333,28 @@ class ProcurementSheetView(APIView):
             "raw_material", "raw_material__category", "supplier"
         ).order_by("raw_material__category__name", "raw_material__name")
 
+        def to_unit(kg, kg_per_unit, ceiling=False):
+            if not kg_per_unit or kg_per_unit <= 0:
+                return None
+            result = float(kg) / float(kg_per_unit)
+            return math.ceil(result) if ceiling else round(result, 2)
+
         items_list = []
         for item in items:
             raw = item.raw_material
+            kpu = item.supplier_kg_per_unit
             items_list.append({
                 "name": raw.name,
                 "category": raw.category.name,
-                "total_kg": float(item.total_gross_quantity),
-                "am_kg": float(item.am_quantity),
-                "pm_kg": float(item.pm_quantity),
+                "demand_kg": float(item.demand_quantity),
+                "demand_unit_qty": to_unit(item.demand_quantity, kpu),
+                "stock_kg": float(item.stock_quantity),
+                "stock_unit_qty": to_unit(item.stock_quantity, kpu),
+                "purchase_kg": float(item.purchase_quantity),
+                "purchase_unit_qty": to_unit(item.purchase_quantity, kpu, ceiling=True),
                 "supplier": item.supplier.name if item.supplier else None,
                 "supplier_unit_name": item.supplier_unit_name or None,
-                "supplier_unit_qty": float(item.supplier_unit_qty) if item.supplier_unit_qty else None,
+                "supplier_kg_per_unit": float(item.supplier_kg_per_unit) if item.supplier_kg_per_unit else None,
                 "supplier_price": float(item.supplier_price) if item.supplier_price else None,
             })
 
@@ -345,7 +373,8 @@ class ProcurementSheetView(APIView):
 class ProcurementTemplateView(APIView):
     """
     GET /api/procurement/template/?date=2026-02-27
-    Returns the kg template with available suppliers for each material.
+    Returns the procurement template with available suppliers for each material.
+    Shows demand, stock, purchase in both kg and supplier units.
     """
     permission_classes = [IsAuthenticated]
 
@@ -389,9 +418,9 @@ class ProcurementTemplateView(APIView):
                 "raw_material_id": raw.id,
                 "raw_material_name": raw.name,
                 "category": raw.category.name,
-                "total_kg": float(item.total_gross_quantity),
-                "am_kg": float(item.am_quantity),
-                "pm_kg": float(item.pm_quantity),
+                "demand_kg": float(item.demand_quantity),
+                "stock_kg": float(item.stock_quantity),
+                "purchase_kg": float(item.purchase_quantity),
                 "current_supplier_id": item.supplier_id,
                 "available_suppliers": available_suppliers,
             })
@@ -407,7 +436,8 @@ class ProcurementTemplateView(APIView):
 class ProcurementAssignSuppliersView(APIView):
     """
     POST /api/procurement/assign-suppliers/?date=2026-02-27
-    Assign suppliers to procurement items and calculate supplier unit quantities.
+    Assign suppliers to procurement items. Does NOT change procurement status.
+    Only allowed on CREATED status.
 
     Body:
     {
@@ -433,8 +463,8 @@ class ProcurementAssignSuppliersView(APIView):
         if not pr:
             raise NotFound("No procurement request found for this date.")
 
-        if pr.status == "CONFIRMED":
-            raise ValidationError({"detail": "Already confirmed. Cannot reassign."})
+        if pr.status != "CREATED":
+            raise ValidationError({"detail": f"Cannot reassign: status is {pr.status}."})
 
         assignments = request.data.get("assignments", [])
         if not assignments:
@@ -462,23 +492,16 @@ class ProcurementAssignSuppliersView(APIView):
                         {"detail": f"SupplierMaterial {sm_id} not valid for material {item.raw_material_id}."}
                     )
 
-                # Calculate supplier unit quantity
-                kg_per_unit = sm.kg_per_unit or Decimal("1.00")
-                unit_qty = item.total_gross_quantity / kg_per_unit
-
                 item.supplier = sm.supplier
                 item.supplier_unit_name = sm.unit_name
-                item.supplier_unit_qty = unit_qty
+                item.supplier_kg_per_unit = sm.kg_per_unit
                 item.supplier_price = sm.price
                 item.save(update_fields=[
                     "supplier", "supplier_unit_name",
-                    "supplier_unit_qty", "supplier_price"
+                    "supplier_kg_per_unit", "supplier_price"
                 ])
-
-            pr.status = "CONFIRMED"
-            pr.save(update_fields=["status"])
 
         return success_response(
             results=ProcurementRequestSerializer(pr).data,
-            message="Suppliers assigned and confirmed",
+            message="Suppliers assigned",
         )
