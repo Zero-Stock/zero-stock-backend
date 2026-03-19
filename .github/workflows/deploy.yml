@@ -30,3 +30,27 @@ jobs:
             --source . \
             --region ${{ secrets.GCP_REGION }} \
             --allow-unauthenticated
+
+      - name: Get deployed image
+        id: image
+        run: |
+          IMAGE=$(gcloud run services describe ${{ secrets.CLOUD_RUN_SERVICE }} \
+            --region ${{ secrets.GCP_REGION }} \
+            --format="value(spec.template.spec.containers[0].image)")
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+      - name: Update migration job image
+        run: |
+          gcloud run jobs update migrate-job \
+            --image '${{ steps.image.outputs.image }}' \
+            --region ${{ secrets.GCP_REGION }} \
+            --set-cloudsql-instances zero-stock-dev:us-central1:zero-stock-db-small \
+            --set-env-vars DB_NAME=zero_stock_small,DB_USER=zero_stock_user_small,DB_PASSWORD='${{ secrets.DB_PASSWORD }}',DB_HOST=/cloudsql/zero-stock-dev:us-central1:zero-stock-db-small,DB_PORT=5432 \
+            --command python \
+            --args manage.py,migrate,--noinput
+
+      - name: Run migrations
+        run: |
+          gcloud run jobs execute migrate-job \
+            --region ${{ secrets.GCP_REGION }} \
+            --wait
