@@ -66,6 +66,107 @@ class CensusSearchView(BaseSearchView):
             qs = qs.filter(diet_category_id=filters['diet_category_id'])
         return qs
 
+    def post(self, request):
+        filters = request.data or {}
+        date_param = filters.get('date')
+        start_param = filters.get('start')
+        end_param = filters.get('end')
+
+        if not (date_param or start_param or end_param):
+            return super().post(request)
+
+        import datetime
+        from common.views import success_response
+        from core.models import DietCategory
+        from operations.models import ClientCompanyRegion
+
+        company_id = self.request.user.profile.company_id
+
+        # Determine target dates safely
+        target_dates = []
+        if date_param:
+            try:
+                dt = datetime.datetime.strptime(date_param, "%Y-%m-%d").date()
+                target_dates.append(dt)
+            except ValueError:
+                return super().post(request)
+        else:
+            try:
+                start_dt = datetime.datetime.strptime(start_param, "%Y-%m-%d").date() if start_param else datetime.date.today() - datetime.timedelta(days=7)
+                end_dt = datetime.datetime.strptime(end_param, "%Y-%m-%d").date() if end_param else datetime.date.today() + datetime.timedelta(days=7)
+                if (end_dt - start_dt).days > 31: # Cap to 31 days to prevent massive memory loops
+                    end_dt = start_dt + datetime.timedelta(days=31)
+                
+                curr = start_dt
+                while curr <= end_dt:
+                    target_dates.append(curr)
+                    curr += datetime.timedelta(days=1)
+            except ValueError:
+                return super().post(request)
+
+        qs = self.get_base_queryset()
+        qs = self.apply_filters(qs, filters)
+
+        regions_qs = ClientCompanyRegion.objects.filter(company_id=company_id).order_by('id')
+        if filters.get('region_id'):
+            regions_qs = regions_qs.filter(id=filters['region_id'])
+
+        diets_qs = DietCategory.objects.all().order_by('id')
+        if filters.get('diet_category_id'):
+            diets_qs = diets_qs.filter(id=filters['diet_category_id'])
+
+        regions = list(regions_qs)
+        diets = list(diets_qs)
+        
+        existing_records = {}
+        for r in qs:
+            existing_records[(str(r.date), r.region_id, r.diet_category_id)] = r
+
+        padded_results = []
+        for dt in target_dates:
+            dt_str = str(dt)
+            for region in regions:
+                for diet in diets:
+                    key = (dt_str, region.id, diet.id)
+                    if key in existing_records:
+                        record = existing_records[key]
+                        padded_results.append(self.serializer_class(record).data)
+                    else:
+                        padded_results.append({
+                            "id": None,
+                            "company": company_id,
+                            "date": dt_str,
+                            "region": region.id,
+                            "region_name": region.name,
+                            "diet_category": diet.id,
+                            "diet_category_name": diet.name,
+                            "count": 0
+                        })
+
+        # Apply custom sorting
+        ordering = filters.get('ordering', self.default_ordering)
+        field = ordering.lstrip('-')
+        reverse = ordering.startswith('-')
+        if field in self.allowed_ordering:
+            padded_results.sort(key=lambda x: str(x.get(field)) if x.get(field) is not None else "", reverse=reverse)
+
+        # Pagination
+        total = len(padded_results)
+        page = max(int(filters.get('page', 1)), 1)
+        page_size = min(max(int(filters.get('page_size', 20)), 1), 100)
+        start_idx = (page - 1) * page_size
+        paginated_results = padded_results[start_idx:start_idx + page_size]
+
+        return success_response(
+            results={
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'results': paginated_results,
+            }
+        )
+
+
 
 class ProcurementSearchView(BaseSearchView):
     """
