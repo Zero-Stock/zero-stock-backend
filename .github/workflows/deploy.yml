@@ -39,13 +39,14 @@ jobs:
             --format="value(spec.template.spec.containers[0].image)")
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
 
-      - name: Update migration job image
+      - name: Update migration job
         run: |
           gcloud run jobs update migrate-job \
-            --image '${{ steps.image.outputs.image }}' \
+            --image "${{ steps.image.outputs.image }}" \
             --region ${{ secrets.GCP_REGION }} \
             --set-cloudsql-instances zero-stock-dev:us-central1:zero-stock-db-small \
-            --set-env-vars DB_NAME=zero_stock_small,DB_USER=zero_stock_user_small,DB_PASSWORD='${{ secrets.DB_PASSWORD }}',DB_HOST=/cloudsql/zero-stock-dev:us-central1:zero-stock-db-small,DB_PORT=5432 \
+            --set-env-vars DB_NAME=zero_stock_small,DB_USER=zero_stock_user_small,DB_HOST=/cloudsql/zero-stock-dev:us-central1:zero-stock-db-small,DB_PORT=5432 \
+            --set-secrets DB_PASSWORD=db-password-small:latest \
             --command python \
             --args manage.py,migrate,--noinput
 
