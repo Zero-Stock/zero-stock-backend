@@ -4,9 +4,9 @@ POST /search/ endpoints for operations models.
 Each view inherits BaseSearchView and defines its own filter fields.
 """
 from common.views import BaseSearchView
-from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest
+from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord
 from operations.serializers import (
-    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer,
+    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer,
 )
 from rest_framework.permissions import IsAuthenticated
 
@@ -221,4 +221,41 @@ class ProcurementSearchView(BaseSearchView):
                 qs = qs.filter(target_date__gte=filters['start'])
             if filters.get('end'):
                 qs = qs.filter(target_date__lte=filters['end'])
+        return qs
+
+class ReceivingSearchView(BaseSearchView):
+    """
+    POST /api/receiving/search/
+    Filters: status(exact), date(exact), start(>=), end(<=)
+    Ordering: received_date, id
+    """
+    serializer_class = ReceivingRecordSerializer
+    allowed_ordering = ['received_date', 'id']
+    default_ordering = '-received_date'
+
+    def get_base_queryset(self):
+        if self.request.user.is_authenticated:
+            company_id = self.request.user.profile.company_id
+        else:
+            company_id = self.request.data.get('company')
+            if not company_id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+
+        return ReceivingRecord.objects.filter(
+            company_id=company_id
+        ).select_related('procurement', 'company').prefetch_related('items__raw_material')
+
+    def apply_filters(self, qs, filters):
+        if filters.get('status'):
+            qs = qs.filter(status=filters['status'])
+
+        if filters.get('date'):
+            qs = qs.filter(procurement__target_date=filters['date'])
+        else:
+            if filters.get('start'):
+                qs = qs.filter(procurement__target_date__gte=filters['start'])
+            if filters.get('end'):
+                qs = qs.filter(procurement__target_date__lte=filters['end'])
+
         return qs
