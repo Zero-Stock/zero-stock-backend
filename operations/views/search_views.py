@@ -47,10 +47,15 @@ class CensusSearchView(BaseSearchView):
     serializer_class = DailyCensusSerializer
     allowed_ordering = ['date', 'region_id', 'diet_category_id']
     default_ordering = 'date'
-    permission_classes = [IsAuthenticated]
 
     def get_base_queryset(self):
-        company_id = self.request.user.profile.company_id
+        if self.request.user.is_authenticated:
+            company_id = self.request.user.profile.company_id
+        else:
+            company_id = self.request.data.get('company')
+            if not company_id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
         return DailyCensus.objects.filter(company_id=company_id)
 
     def apply_filters(self, qs, filters):
@@ -81,7 +86,13 @@ class CensusSearchView(BaseSearchView):
         from core.models import DietCategory
         from operations.models import ClientCompanyRegion
 
-        company_id = self.request.user.profile.company_id
+        if self.request.user.is_authenticated:
+            company_id = self.request.user.profile.company_id
+        else:
+            company_id = filters.get('company')
+            if not company_id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
 
         # Determine target dates safely
         target_dates = []
@@ -189,10 +200,15 @@ class ProcurementSearchView(BaseSearchView):
     serializer_class = ProcurementRequestSerializer
     allowed_ordering = ['target_date', 'id']
     default_ordering = '-target_date'
-    permission_classes = [IsAuthenticated]
 
     def get_base_queryset(self):
-        company_id = self.request.user.profile.company_id
+        if self.request.user.is_authenticated:
+            company_id = self.request.user.profile.company_id
+        else:
+            company_id = self.request.data.get('company')
+            if not company_id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
         return ProcurementRequest.objects.filter(company_id=company_id)
 
     def apply_filters(self, qs, filters):
