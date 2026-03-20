@@ -119,9 +119,12 @@ class CensusSearchView(BaseSearchView):
         regions = list(regions_qs)
         diets = list(diets_qs)
         
-        existing_records = {}
-        for r in qs:
-            existing_records[(str(r.date), r.region_id, r.diet_category_id)] = r
+        # Bulk serialize existing records once to prevent O(N) serializer instantiation overhead
+        qs_data = self.serializer_class(qs, many=True).data
+        existing_records_data = {
+            (r['date'], r['region'], r['diet_category']): r
+            for r in qs_data
+        }
 
         padded_results = []
         for dt in target_dates:
@@ -129,9 +132,8 @@ class CensusSearchView(BaseSearchView):
             for region in regions:
                 for diet in diets:
                     key = (dt_str, region.id, diet.id)
-                    if key in existing_records:
-                        record = existing_records[key]
-                        padded_results.append(self.serializer_class(record).data)
+                    if key in existing_records_data:
+                        padded_results.append(existing_records_data[key])
                     else:
                         padded_results.append({
                             "id": None,
@@ -148,8 +150,17 @@ class CensusSearchView(BaseSearchView):
         ordering = filters.get('ordering', self.default_ordering)
         field = ordering.lstrip('-')
         reverse = ordering.startswith('-')
+        
+        # Map Django ORM field names to serialized JSON dictionary keys
+        field_map = {
+            'region_id': 'region',
+            'diet_category_id': 'diet_category',
+            'date': 'date'
+        }
+        dict_key = field_map.get(field, field)
+
         if field in self.allowed_ordering:
-            padded_results.sort(key=lambda x: str(x.get(field)) if x.get(field) is not None else "", reverse=reverse)
+            padded_results.sort(key=lambda x: x.get(dict_key) if x.get(dict_key) is not None else 0, reverse=reverse)
 
         # Pagination
         total = len(padded_results)
