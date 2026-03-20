@@ -8,6 +8,7 @@ from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest
 from operations.serializers import (
     WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer,
 )
+from rest_framework.permissions import IsAuthenticated
 
 
 class WeeklyMenuSearchView(BaseSearchView):
@@ -46,7 +47,7 @@ class CensusSearchView(BaseSearchView):
     serializer_class = DailyCensusSerializer
     allowed_ordering = ['date', 'region_id', 'diet_category_id']
     default_ordering = 'date'
-    permission_classes = []  # Will use IsAuthenticated from parent
+    permission_classes = [IsAuthenticated]
 
     def get_base_queryset(self):
         company_id = self.request.user.profile.company_id
@@ -177,7 +178,7 @@ class ProcurementSearchView(BaseSearchView):
     serializer_class = ProcurementRequestSerializer
     allowed_ordering = ['target_date', 'id']
     default_ordering = '-target_date'
-    permission_classes = []
+    permission_classes = [IsAuthenticated]
 
     def get_base_queryset(self):
         company_id = self.request.user.profile.company_id
