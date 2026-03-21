@@ -4,9 +4,9 @@ POST /search/ endpoints for operations models.
 Each view inherits BaseSearchView and defines its own filter fields.
 """
 from common.views import BaseSearchView
-from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord, ProcessingOrder
+from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord, ProcessingOrder, DeliveryOrder
 from operations.serializers import (
-    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer, ProcessingOrderSerializer,)
+    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer, ProcessingOrderSerializer, DeliveryOrderSerializer)
 from rest_framework.permissions import IsAuthenticated
 
 
@@ -287,6 +287,43 @@ class ProcessingSearchView(BaseSearchView):
     def apply_filters(self, qs, filters):
         if filters.get('status'):
             qs = qs.filter(status=filters['status'])
+
+        if filters.get('date'):
+            qs = qs.filter(target_date=filters['date'])
+        else:
+            if filters.get('start'):
+                qs = qs.filter(target_date__gte=filters['start'])
+            if filters.get('end'):
+                qs = qs.filter(target_date__lte=filters['end'])
+
+        return qs
+    
+class DeliverySearchView(BaseSearchView):
+    """
+    POST /api/delivery/search/
+    Filters: meal_time(exact), date(exact), start(>=), end(<=)
+    Ordering: target_date, meal_time, id
+    """
+    serializer_class = DeliveryOrderSerializer
+    allowed_ordering = ['target_date', 'meal_time', 'id']
+    default_ordering = '-target_date'
+
+    def get_base_queryset(self):
+        if self.request.user.is_authenticated:
+            company_id = self.request.user.profile.company_id
+        else:
+            company_id = self.request.data.get('company')
+            if not company_id:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+
+        return DeliveryOrder.objects.filter(
+            company_id=company_id
+        ).select_related('company').prefetch_related('items__region', 'items__diet_category')
+
+    def apply_filters(self, qs, filters):
+        if filters.get('meal_time'):
+            qs = qs.filter(meal_time=filters['meal_time'])
 
         if filters.get('date'):
             qs = qs.filter(target_date=filters['date'])

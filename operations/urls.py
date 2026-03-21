@@ -23,7 +23,7 @@ from .views import (
     DeliveryByRegionView, DeliveryExportView,
 )
 from .views.search_views import (
-    WeeklyMenuSearchView, CensusSearchView, ProcurementSearchView, ReceivingSearchView, ProcessingSearchView
+    WeeklyMenuSearchView, CensusSearchView, ProcurementSearchView, ReceivingSearchView, ProcessingSearchView, DeliverySearchView,
 )
 
 router = DefaultRouter()
@@ -80,5 +80,6 @@ urlpatterns = [
     path("procurement/search/", ProcurementSearchView.as_view(), name="procurement-search"),
     path("receiving/search/", ReceivingSearchView.as_view(), name="receiving-search"),
     path("processing/search/", ProcessingSearchView.as_view(), name="processing-search"),
+    path("delivery/search/", DeliverySearchView.as_view(), name="delivery-search"),
 
 ] + router.urls
