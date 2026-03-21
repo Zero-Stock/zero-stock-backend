@@ -3,6 +3,9 @@
 Delivery demand form views.
 """
 from collections import defaultdict
+from datetime import datetime, time
+from django.utils import timezone
+from django.db import transaction
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -14,7 +17,7 @@ from ..models import (
     DailyCensus, DeliveryOrder, DeliveryItem
 )
 from ..serializers import (
-    DeliveryOrderSerializer, DeliveryGenerateSerializer
+    DeliveryOrderSerializer, DeliveryGenerateSerializer, DeliveryUpdateSerializer
 )
 
 
@@ -90,6 +93,65 @@ class DeliveryDetailView(APIView):
             )
 
         return success_response(results=DeliveryOrderSerializer(order).data)
+    
+    def patch(self, request, pk):
+        serializer = DeliveryUpdateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return error_response(
+                error=serializer.errors,
+                message="Validation failed",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = serializer.validated_data
+        company_id = 1  # test mode for now
+
+        try:
+            order = DeliveryOrder.objects.prefetch_related('items').get(
+                id=pk,
+                company_id=company_id,
+            )
+        except DeliveryOrder.DoesNotExist:
+            return error_response(
+                error="Delivery order not found",
+                message="Delivery order not found",
+                http_status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Deadline check: editable until target_date 23:59
+        deadline = datetime.combine(order.target_date, time(23, 59, 59))
+        if timezone.is_aware(timezone.now()):
+            deadline = timezone.make_aware(deadline)
+        if timezone.now() > deadline:
+            return error_response(
+                error="Delivery update deadline passed",
+                message=f"Delivery update deadline has passed ({order.target_date} 23:59)",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        existing_item_ids = set(order.items.values_list("id", flat=True))
+        incoming_item_ids = {item["id"] for item in data["items"]}
+
+        invalid_ids = incoming_item_ids - existing_item_ids
+        if invalid_ids:
+            return error_response(
+                error=f"Some delivery items do not belong to this order: {sorted(invalid_ids)}",
+                message="Invalid delivery item id",
+                http_status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        update_map = {item["id"]: item["count"] for item in data["items"]}
+
+        with transaction.atomic():
+            for item in order.items.all():
+                if item.id in update_map:
+                    item.count = update_map[item.id]
+                    item.save(update_fields=["count"])
+
+        return success_response(
+            results=DeliveryOrderSerializer(order).data,
+            message="Delivery order updated",
+        )
 
 
 class DeliveryByRegionView(APIView):
