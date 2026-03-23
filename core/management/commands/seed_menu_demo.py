@@ -49,7 +49,7 @@ SEED_SUPPLIERS = [
 SEED_MATERIALS = [
     {
         "name": "Rolled Oats",
-        "category": "Dry Goods",
+        "category": "fresh",
         "stock": Decimal("30.00"),
         "yield_rate": Decimal("1.00"),
         "specs": ["Cooked"],
@@ -60,7 +60,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Egg",
-        "category": "Protein",
+        "category": "fresh",
         "stock": Decimal("18.00"),
         "yield_rate": Decimal("0.98"),
         "specs": ["Beaten", "Scrambled"],
@@ -71,7 +71,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Chicken Breast",
-        "category": "Protein",
+        "category": "fresh",
         "stock": Decimal("25.00"),
         "yield_rate": Decimal("0.92"),
         "specs": ["Diced", "Sliced", "Shredded"],
@@ -82,7 +82,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Ground Beef",
-        "category": "Protein",
+        "category": "fresh",
         "stock": Decimal("20.00"),
         "yield_rate": Decimal("0.90"),
         "specs": ["Marinated", "Cooked"],
@@ -93,7 +93,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Shrimp",
-        "category": "Frozen",
+        "category": "frozen",
         "stock": Decimal("12.00"),
         "yield_rate": Decimal("0.88"),
         "specs": ["Thawed", "Peeled"],
@@ -104,7 +104,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Tomato",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("22.00"),
         "yield_rate": Decimal("0.97"),
         "specs": ["Diced", "Roasted"],
@@ -115,7 +115,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Cucumber",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("14.00"),
         "yield_rate": Decimal("0.98"),
         "specs": ["Sliced"],
@@ -126,7 +126,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Bok Choy",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("16.00"),
         "yield_rate": Decimal("0.94"),
         "specs": ["Chopped"],
@@ -137,7 +137,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Garlic",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("5.00"),
         "yield_rate": Decimal("0.96"),
         "specs": ["Minced", "Sliced"],
@@ -148,7 +148,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Mushroom",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("11.00"),
         "yield_rate": Decimal("0.95"),
         "specs": ["Sliced"],
@@ -159,7 +159,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Tofu",
-        "category": "Protein",
+        "category": "fresh",
         "stock": Decimal("13.00"),
         "yield_rate": Decimal("0.99"),
         "specs": ["Cubed", "Steamed"],
@@ -170,7 +170,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Rice",
-        "category": "Dry Goods",
+        "category": "fresh",
         "stock": Decimal("40.00"),
         "yield_rate": Decimal("1.00"),
         "specs": ["Cooked"],
@@ -181,7 +181,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Onion",
-        "category": "Produce",
+        "category": "fresh",
         "stock": Decimal("10.00"),
         "yield_rate": Decimal("0.95"),
         "specs": ["Diced", "Sliced"],
@@ -189,6 +189,105 @@ SEED_MATERIALS = [
         "unit_name": "bag",
         "kg_per_unit": Decimal("8.00"),
         "price": Decimal("22.00"),
+    },
+    {
+        "name": "Carrot",
+        "category": "fresh",
+        "stock": Decimal("18.00"),
+        "yield_rate": Decimal("0.96"),
+        "specs": ["Diced", "Sliced", "Julienned"],
+        "supplier": "North Farm Produce",
+        "unit_name": "crate",
+        "kg_per_unit": Decimal("10.00"),
+        "price": Decimal("24.00"),
+    },
+    {
+        "name": "Potato",
+        "category": "fresh",
+        "stock": Decimal("28.00"),
+        "yield_rate": Decimal("0.90"),
+        "specs": ["Cubed", "Mashed", "Roasted"],
+        "supplier": "North Farm Produce",
+        "unit_name": "bag",
+        "kg_per_unit": Decimal("15.00"),
+        "price": Decimal("29.00"),
+    },
+    {
+        "name": "Broccoli",
+        "category": "fresh",
+        "stock": Decimal("12.00"),
+        "yield_rate": Decimal("0.92"),
+        "specs": ["Florets", "Steamed"],
+        "supplier": "North Farm Produce",
+        "unit_name": "crate",
+        "kg_per_unit": Decimal("7.00"),
+        "price": Decimal("31.00"),
+    },
+    {
+        "name": "Bell Pepper",
+        "category": "fresh",
+        "stock": Decimal("9.00"),
+        "yield_rate": Decimal("0.94"),
+        "specs": ["Diced", "Sliced"],
+        "supplier": "North Farm Produce",
+        "unit_name": "crate",
+        "kg_per_unit": Decimal("6.00"),
+        "price": Decimal("33.00"),
+    },
+    {
+        "name": "Spinach",
+        "category": "fresh",
+        "stock": Decimal("10.00"),
+        "yield_rate": Decimal("0.91"),
+        "specs": ["Chopped", "Sauteed"],
+        "supplier": "North Farm Produce",
+        "unit_name": "crate",
+        "kg_per_unit": Decimal("5.00"),
+        "price": Decimal("26.00"),
+    },
+    {
+        "name": "Pasta",
+        "category": "fresh",
+        "stock": Decimal("16.00"),
+        "yield_rate": Decimal("1.00"),
+        "specs": ["Boiled"],
+        "supplier": "Pantry Depot",
+        "unit_name": "box",
+        "kg_per_unit": Decimal("8.00"),
+        "price": Decimal("34.00"),
+    },
+    {
+        "name": "Salmon",
+        "category": "frozen",
+        "stock": Decimal("14.00"),
+        "yield_rate": Decimal("0.89"),
+        "specs": ["Thawed", "Portioned", "Baked"],
+        "supplier": "Prime Protein Supply",
+        "unit_name": "box",
+        "kg_per_unit": Decimal("10.00"),
+        "price": Decimal("128.00"),
+    },
+    {
+        "name": "Green Peas",
+        "category": "frozen",
+        "stock": Decimal("11.00"),
+        "yield_rate": Decimal("0.99"),
+        "specs": ["Thawed"],
+        "supplier": "Pantry Depot",
+        "unit_name": "bag",
+        "kg_per_unit": Decimal("6.00"),
+        "price": Decimal("25.00"),
+    },
+    {
+        "name": "Corn",
+        "category": "frozen",
+        "stock": Decimal("11.00"),
+        "yield_rate": Decimal("0.99"),
+        "specs": ["Thawed"],
+        "supplier": "Pantry Depot",
+        "unit_name": "bag",
+        "kg_per_unit": Decimal("6.00"),
+        "price": Decimal("24.00"),
     },
 ]
 
@@ -292,6 +391,90 @@ SEED_DISHES = [
             {"material": "Garlic", "processing": "Minced", "net_quantity": Decimal("0.004")},
         ],
     },
+    {
+        "name": "Chicken and Broccoli",
+        "seasonings": "Salt, garlic, light soy sauce",
+        "cooking_method": "Stir-fry diced chicken with broccoli florets and finish with a light glaze.",
+        "ingredients": [
+            {"material": "Chicken Breast", "processing": "Diced", "net_quantity": Decimal("0.120")},
+            {"material": "Broccoli", "processing": "Florets", "net_quantity": Decimal("0.090")},
+            {"material": "Garlic", "processing": "Minced", "net_quantity": Decimal("0.004")},
+        ],
+    },
+    {
+        "name": "Roasted Potato Hash",
+        "seasonings": "Salt, paprika, black pepper",
+        "cooking_method": "Roast cubed potatoes with onion and bell pepper until crisp and golden.",
+        "ingredients": [
+            {"material": "Potato", "processing": "Roasted", "net_quantity": Decimal("0.160")},
+            {"material": "Onion", "processing": "Diced", "net_quantity": Decimal("0.030")},
+            {"material": "Bell Pepper", "processing": "Diced", "net_quantity": Decimal("0.040")},
+        ],
+    },
+    {
+        "name": "Salmon Rice Plate",
+        "seasonings": "Salt, dill, lemon pepper",
+        "cooking_method": "Bake salmon portions and serve with warm rice and a side of broccoli.",
+        "ingredients": [
+            {"material": "Salmon", "processing": "Baked", "net_quantity": Decimal("0.130")},
+            {"material": "Rice", "processing": "Cooked", "net_quantity": Decimal("0.140")},
+            {"material": "Broccoli", "processing": "Steamed", "net_quantity": Decimal("0.070")},
+        ],
+    },
+    {
+        "name": "Vegetable Fried Rice",
+        "seasonings": "Salt, white pepper, soy sauce",
+        "cooking_method": "Stir-fry rice with egg, peas, corn, and diced carrots.",
+        "ingredients": [
+            {"material": "Rice", "processing": "Cooked", "net_quantity": Decimal("0.150")},
+            {"material": "Egg", "processing": "Beaten", "net_quantity": Decimal("0.040")},
+            {"material": "Green Peas", "processing": "Thawed", "net_quantity": Decimal("0.030")},
+            {"material": "Corn", "processing": "Thawed", "net_quantity": Decimal("0.030")},
+            {"material": "Carrot", "processing": "Diced", "net_quantity": Decimal("0.030")},
+        ],
+    },
+    {
+        "name": "Spinach Egg Soup",
+        "seasonings": "Salt, white pepper, sesame oil",
+        "cooking_method": "Simmer chopped spinach and drizzle in beaten egg for a light soup.",
+        "ingredients": [
+            {"material": "Spinach", "processing": "Chopped", "net_quantity": Decimal("0.080")},
+            {"material": "Egg", "processing": "Beaten", "net_quantity": Decimal("0.040")},
+            {"material": "Garlic", "processing": "Minced", "net_quantity": Decimal("0.003")},
+        ],
+    },
+    {
+        "name": "Creamy Mushroom Pasta",
+        "seasonings": "Salt, black pepper, parsley",
+        "cooking_method": "Boil pasta, then toss with sliced mushrooms and a light creamy sauce.",
+        "ingredients": [
+            {"material": "Pasta", "processing": "Boiled", "net_quantity": Decimal("0.140")},
+            {"material": "Mushroom", "processing": "Sliced", "net_quantity": Decimal("0.070")},
+            {"material": "Onion", "processing": "Diced", "net_quantity": Decimal("0.025")},
+        ],
+    },
+    {
+        "name": "Tofu Vegetable Bowl",
+        "seasonings": "Salt, ginger, sesame oil",
+        "cooking_method": "Saute tofu with bok choy, carrot, and bell pepper for a colorful bowl.",
+        "ingredients": [
+            {"material": "Tofu", "processing": "Cubed", "net_quantity": Decimal("0.130")},
+            {"material": "Bok Choy", "processing": "Chopped", "net_quantity": Decimal("0.060")},
+            {"material": "Carrot", "processing": "Julienned", "net_quantity": Decimal("0.030")},
+            {"material": "Bell Pepper", "processing": "Sliced", "net_quantity": Decimal("0.040")},
+        ],
+    },
+    {
+        "name": "Beef and Potato Stew",
+        "seasonings": "Salt, thyme, black pepper",
+        "cooking_method": "Slow simmer beef with potatoes, carrots, and onion until tender.",
+        "ingredients": [
+            {"material": "Ground Beef", "processing": "Cooked", "net_quantity": Decimal("0.130")},
+            {"material": "Potato", "processing": "Cubed", "net_quantity": Decimal("0.120")},
+            {"material": "Carrot", "processing": "Sliced", "net_quantity": Decimal("0.040")},
+            {"material": "Onion", "processing": "Diced", "net_quantity": Decimal("0.025")},
+        ],
+    },
 ]
 
 SEED_MEAL_PLANS = [
@@ -321,6 +504,14 @@ SEED_MEAL_PLANS = [
     },
     {
         "day_of_week": 2,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Roasted Potato Hash", "quantity": 1},
+            {"name": "Spinach Egg Soup", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 2,
         "meal_time": "L",
         "dishes": [
             {"name": "Mushroom Chicken Rice Bowl", "quantity": 1},
@@ -333,6 +524,126 @@ SEED_MEAL_PLANS = [
         "dishes": [
             {"name": "Shrimp Fried Rice", "quantity": 1},
             {"name": "Steamed Tofu Bowl", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 3,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Savory Oatmeal Bowl", "quantity": 1},
+            {"name": "Cucumber Salad", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 3,
+        "meal_time": "L",
+        "dishes": [
+            {"name": "Chicken and Broccoli", "quantity": 1},
+            {"name": "Tomato Tofu Soup", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 3,
+        "meal_time": "D",
+        "dishes": [
+            {"name": "Beef and Potato Stew", "quantity": 1},
+            {"name": "Garlic Bok Choy", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 4,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Scrambled Eggs and Tomato", "quantity": 1},
+            {"name": "Roasted Potato Hash", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 4,
+        "meal_time": "L",
+        "dishes": [
+            {"name": "Salmon Rice Plate", "quantity": 1},
+            {"name": "Spinach Egg Soup", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 4,
+        "meal_time": "D",
+        "dishes": [
+            {"name": "Creamy Mushroom Pasta", "quantity": 1},
+            {"name": "Tofu Vegetable Bowl", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 5,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Savory Oatmeal Bowl", "quantity": 1},
+            {"name": "Spinach Egg Soup", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 5,
+        "meal_time": "L",
+        "dishes": [
+            {"name": "Vegetable Fried Rice", "quantity": 1},
+            {"name": "Chicken and Broccoli", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 5,
+        "meal_time": "D",
+        "dishes": [
+            {"name": "Beef and Potato Stew", "quantity": 1},
+            {"name": "Steamed Tofu Bowl", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 6,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Scrambled Eggs and Tomato", "quantity": 1},
+            {"name": "Cucumber Salad", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 6,
+        "meal_time": "L",
+        "dishes": [
+            {"name": "Herb Chicken Rice", "quantity": 1},
+            {"name": "Tofu Vegetable Bowl", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 6,
+        "meal_time": "D",
+        "dishes": [
+            {"name": "Salmon Rice Plate", "quantity": 1},
+            {"name": "Garlic Bok Choy", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 7,
+        "meal_time": "B",
+        "dishes": [
+            {"name": "Roasted Potato Hash", "quantity": 1},
+            {"name": "Savory Oatmeal Bowl", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 7,
+        "meal_time": "L",
+        "dishes": [
+            {"name": "Shrimp Fried Rice", "quantity": 1},
+            {"name": "Spinach Egg Soup", "quantity": 1},
+        ],
+    },
+    {
+        "day_of_week": 7,
+        "meal_time": "D",
+        "dishes": [
+            {"name": "Creamy Mushroom Pasta", "quantity": 1},
+            {"name": "Tomato Tofu Soup", "quantity": 1},
         ],
     },
 ]
@@ -350,11 +661,27 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete the seeded demo records first, then recreate them.",
         )
+        parser.add_argument(
+            "--delete-only",
+            action="store_true",
+            help="Delete the seeded demo records without recreating them.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        if options["reset"]:
+        reset = options["reset"]
+        delete_only = options["delete_only"]
+
+        if reset and delete_only:
+            raise ValueError("Use either --reset or --delete-only, not both.")
+
+        if reset or delete_only:
             self._reset_seed_data()
+            if delete_only:
+                self.stdout.write(
+                    self.style.SUCCESS("Deleted seeded demo data.")
+                )
+                return
 
         company, _ = ClientCompany.objects.update_or_create(
             code=SEED_COMPANY["code"],
