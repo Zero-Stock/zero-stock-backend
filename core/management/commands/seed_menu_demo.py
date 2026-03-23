@@ -19,8 +19,8 @@ from core.models import (
 from operations.models import WeeklyMenu, WeeklyMenuDish
 
 SEED_COMPANY = {
-    "name": "Demo General Hospital",
-    "code": "DEMO01",
+    "name": "testCompany",
+    "code": "testCompanyCode1",
 }
 
 SEED_DIETS = [
@@ -862,5 +862,7 @@ class Command(BaseCommand):
         category_names = sorted({item["category"] for item in SEED_MATERIALS})
         MaterialCategory.objects.filter(name__in=category_names, rawmaterial__isnull=True).delete()
 
-        DietCategory.objects.filter(name__in=SEED_DIETS).delete()
-        ClientCompany.objects.filter(code=SEED_COMPANY["code"]).delete()
+        DietCategory.objects.filter(
+            name__in=SEED_DIETS,
+            weeklymenu__isnull=True,
+        ).delete()
