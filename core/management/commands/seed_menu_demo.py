@@ -23,7 +23,12 @@ SEED_COMPANY = {
     "code": "DEMO01",
 }
 
-SEED_DIET = "Standard Menu"
+SEED_DIETS = [
+    "Standard Menu",
+    "Light Diet",
+    "High Protein",
+]
+PRIMARY_DIET = "Standard Menu"
 
 SEED_SUPPLIERS = [
     {
@@ -687,7 +692,8 @@ class Command(BaseCommand):
             code=SEED_COMPANY["code"],
             defaults={"name": SEED_COMPANY["name"]},
         )
-        diet, _ = DietCategory.objects.get_or_create(name=SEED_DIET)
+        diets = self._seed_diets()
+        diet = diets[PRIMARY_DIET]
         suppliers = self._seed_suppliers()
         materials = self._seed_materials(suppliers)
         dishes = self._seed_dishes(materials, diet)
@@ -697,9 +703,17 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Seeded demo data: {len(suppliers)} suppliers, "
                 f"{len(materials)} materials, {len(dishes)} dishes, "
+                f"{len(diets)} diet categories, "
                 f"and {menus_created} meal plans."
             )
         )
+
+    def _seed_diets(self):
+        diets = {}
+        for name in SEED_DIETS:
+            diet, _ = DietCategory.objects.get_or_create(name=name)
+            diets[name] = diet
+        return diets
 
     def _seed_suppliers(self):
         suppliers = {}
@@ -831,7 +845,7 @@ class Command(BaseCommand):
         for day_of_week, meal_time in menu_day_pairs:
             WeeklyMenu.objects.filter(
                 company__code=SEED_COMPANY["code"],
-                diet_category__name=SEED_DIET,
+                diet_category__name=PRIMARY_DIET,
                 day_of_week=day_of_week,
                 meal_time=meal_time,
             ).delete()
@@ -848,5 +862,5 @@ class Command(BaseCommand):
         category_names = sorted({item["category"] for item in SEED_MATERIALS})
         MaterialCategory.objects.filter(name__in=category_names, rawmaterial__isnull=True).delete()
 
-        DietCategory.objects.filter(name=SEED_DIET).delete()
+        DietCategory.objects.filter(name__in=SEED_DIETS).delete()
         ClientCompany.objects.filter(code=SEED_COMPANY["code"]).delete()

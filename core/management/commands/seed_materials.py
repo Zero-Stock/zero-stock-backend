@@ -94,19 +94,31 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete the seeded materials first, then recreate them.",
         )
+        parser.add_argument(
+            "--delete-only",
+            action="store_true",
+            help="Delete the seeded materials without recreating them.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
         reset = options["reset"]
+        delete_only = options["delete_only"]
         material_names = [item["name"] for item in SEED_MATERIALS]
 
-        if reset:
+        if reset and delete_only:
+            raise ValueError("Use either --reset or --delete-only, not both.")
+
+        if reset or delete_only:
             deleted_count, _ = RawMaterial.objects.filter(name__in=material_names).delete()
             self.stdout.write(
                 self.style.WARNING(
                     f"Deleted existing seeded material records: {deleted_count}"
                 )
             )
+            if delete_only:
+                self.stdout.write(self.style.SUCCESS("Deleted seeded material data."))
+                return
 
         categories = self._ensure_categories()
         created_count = 0
