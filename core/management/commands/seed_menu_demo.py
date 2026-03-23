@@ -49,7 +49,7 @@ SEED_SUPPLIERS = [
 SEED_MATERIALS = [
     {
         "name": "Rolled Oats",
-        "category": "Dry Goods",
+        "category": "Fresh",
         "stock": Decimal("30.00"),
         "yield_rate": Decimal("1.00"),
         "specs": ["Cooked"],
@@ -60,7 +60,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Egg",
-        "category": "Protein",
+        "category": "Fresh",
         "stock": Decimal("18.00"),
         "yield_rate": Decimal("0.98"),
         "specs": ["Beaten", "Scrambled"],
@@ -71,7 +71,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Chicken Breast",
-        "category": "Protein",
+        "category": "Fresh",
         "stock": Decimal("25.00"),
         "yield_rate": Decimal("0.92"),
         "specs": ["Diced", "Sliced", "Shredded"],
@@ -82,7 +82,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Ground Beef",
-        "category": "Protein",
+        "category": "Fresh",
         "stock": Decimal("20.00"),
         "yield_rate": Decimal("0.90"),
         "specs": ["Marinated", "Cooked"],
@@ -104,7 +104,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Tomato",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("22.00"),
         "yield_rate": Decimal("0.97"),
         "specs": ["Diced", "Roasted"],
@@ -115,7 +115,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Cucumber",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("14.00"),
         "yield_rate": Decimal("0.98"),
         "specs": ["Sliced"],
@@ -126,7 +126,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Bok Choy",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("16.00"),
         "yield_rate": Decimal("0.94"),
         "specs": ["Chopped"],
@@ -137,7 +137,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Garlic",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("5.00"),
         "yield_rate": Decimal("0.96"),
         "specs": ["Minced", "Sliced"],
@@ -148,7 +148,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Mushroom",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("11.00"),
         "yield_rate": Decimal("0.95"),
         "specs": ["Sliced"],
@@ -159,7 +159,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Tofu",
-        "category": "Protein",
+        "category": "Fresh",
         "stock": Decimal("13.00"),
         "yield_rate": Decimal("0.99"),
         "specs": ["Cubed", "Steamed"],
@@ -170,7 +170,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Rice",
-        "category": "Dry Goods",
+        "category": "Fresh",
         "stock": Decimal("40.00"),
         "yield_rate": Decimal("1.00"),
         "specs": ["Cooked"],
@@ -181,7 +181,7 @@ SEED_MATERIALS = [
     },
     {
         "name": "Onion",
-        "category": "Produce",
+        "category": "Fresh",
         "stock": Decimal("10.00"),
         "yield_rate": Decimal("0.95"),
         "specs": ["Diced", "Sliced"],
@@ -350,11 +350,27 @@ class Command(BaseCommand):
             action="store_true",
             help="Delete the seeded demo records first, then recreate them.",
         )
+        parser.add_argument(
+            "--delete-only",
+            action="store_true",
+            help="Delete the seeded demo records without recreating them.",
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
-        if options["reset"]:
+        reset = options["reset"]
+        delete_only = options["delete_only"]
+
+        if reset and delete_only:
+            raise ValueError("Use either --reset or --delete-only, not both.")
+
+        if reset or delete_only:
             self._reset_seed_data()
+            if delete_only:
+                self.stdout.write(
+                    self.style.SUCCESS("Deleted seeded demo data.")
+                )
+                return
 
         company, _ = ClientCompany.objects.update_or_create(
             code=SEED_COMPANY["code"],

@@ -51,3 +51,19 @@ class SeedMenuDemoCommandTest(TestCase):
 
         material = RawMaterial.objects.get(name="Chicken Breast")
         self.assertEqual(str(material.stock), "25.00")
+
+    def test_seed_menu_demo_delete_only_removes_seeded_records(self):
+        call_command("seed_menu_demo")
+
+        call_command("seed_menu_demo", "--delete-only")
+
+        self.assertFalse(ClientCompany.objects.filter(code="DEMO01").exists())
+        self.assertFalse(RawMaterial.objects.filter(name="Chicken Breast").exists())
+        self.assertFalse(Dish.objects.filter(name="Herb Chicken Rice").exists())
+        self.assertEqual(
+            WeeklyMenu.objects.filter(
+                company__code="DEMO01",
+                diet_category__name="Standard Menu",
+            ).count(),
+            0,
+        )
