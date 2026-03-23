@@ -3,10 +3,11 @@ from io import StringIO
 from django.core.management import call_command
 from django.test import TestCase
 
-from core.models import ClientCompany, Dish, RawMaterial, Supplier
+from core.models import ClientCompany, DietCategory, Dish, RawMaterial, Supplier
 from operations.models import WeeklyMenu, WeeklyMenuDish
 from core.management.commands.seed_menu_demo import (
     SEED_DISHES,
+    SEED_DIETS,
     SEED_MATERIALS,
     SEED_MEAL_PLANS,
     SEED_SUPPLIERS,
@@ -30,6 +31,10 @@ class SeedMenuDemoCommandTest(TestCase):
         )
 
         self.assertEqual(material.default_supplier.name, "Prime Protein Supply")
+        self.assertEqual(
+            DietCategory.objects.filter(name__in=SEED_DIETS).count(),
+            len(SEED_DIETS),
+        )
         self.assertTrue(dish.ingredients.filter(raw_material__name="Chicken Breast").exists())
         self.assertTrue(WeeklyMenuDish.objects.filter(menu=menu, dish=dish, quantity=1).exists())
         self.assertIn(f"{len(SEED_MEAL_PLANS)} meal plans", out.getvalue())

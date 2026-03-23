@@ -47,3 +47,10 @@ class SeedMaterialsCommandTest(TestCase):
 
         material = RawMaterial.objects.get(name="Lean Pork")
         self.assertEqual(material.stock, Decimal("18.50"))
+
+    def test_seed_materials_delete_only_removes_seeded_records(self):
+        call_command("seed_materials")
+
+        call_command("seed_materials", "--delete-only")
+
+        self.assertFalse(RawMaterial.objects.filter(name="Lean Pork").exists())
