@@ -14,7 +14,7 @@ class SeedMaterialsCommandTest(TestCase):
         call_command("seed_materials", stdout=out)
 
         material = RawMaterial.objects.get(name="Lean Pork")
-        self.assertEqual(material.category.name, "Fresh")
+        self.assertEqual(material.category.name, "fresh")
         self.assertEqual(material.stock, Decimal("18.50"))
         self.assertTrue(
             ProcessedMaterial.objects.filter(raw_material=material, method_name="Sliced").exists()
@@ -31,7 +31,7 @@ class SeedMaterialsCommandTest(TestCase):
         call_command("seed_materials")
         call_command("seed_materials")
 
-        self.assertEqual(MaterialCategory.objects.filter(name="Fresh").count(), 1)
+        self.assertEqual(MaterialCategory.objects.filter(name="fresh").count(), 1)
         self.assertEqual(RawMaterial.objects.filter(name="Lean Pork").count(), 1)
         material = RawMaterial.objects.get(name="Lean Pork")
         self.assertEqual(
