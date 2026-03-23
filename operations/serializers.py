@@ -76,11 +76,6 @@ class ProcurementItemSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source="raw_material.category.name", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
 
-    # Computed dual-unit fields
-    demand_unit_qty = serializers.SerializerMethodField()
-    stock_unit_qty = serializers.SerializerMethodField()
-    purchase_unit_qty = serializers.SerializerMethodField()
-
     class Meta:
         model = ProcurementItem
         fields = [
@@ -88,36 +83,16 @@ class ProcurementItemSerializer(serializers.ModelSerializer):
             "raw_material",
             "raw_material_name",
             "category",
-            "demand_quantity",
-            "stock_quantity",
-            "purchase_quantity",
-            "demand_unit_qty",
-            "stock_unit_qty",
-            "purchase_unit_qty",
+            "total_gross_quantity",
+            "am_quantity",
+            "pm_quantity",
             "supplier",
             "supplier_name",
             "supplier_unit_name",
-            "supplier_kg_per_unit",
+            "supplier_unit_qty",
             "supplier_price",
             "notes",
         ]
-
-    def _to_unit(self, kg_value, kg_per_unit, ceiling=False):
-        """Convert kg to supplier unit. Optionally apply ceiling."""
-        if not kg_per_unit or kg_per_unit <= 0:
-            return None
-        import math
-        result = float(kg_value) / float(kg_per_unit)
-        return math.ceil(result) if ceiling else round(result, 2)
-
-    def get_demand_unit_qty(self, obj):
-        return self._to_unit(obj.demand_quantity, obj.supplier_kg_per_unit)
-
-    def get_stock_unit_qty(self, obj):
-        return self._to_unit(obj.stock_quantity, obj.supplier_kg_per_unit)
-
-    def get_purchase_unit_qty(self, obj):
-        return self._to_unit(obj.purchase_quantity, obj.supplier_kg_per_unit, ceiling=True)
 
 
 class ProcurementRequestSerializer(serializers.ModelSerializer):
@@ -241,6 +216,15 @@ class ReceivingItemSerializer(serializers.ModelSerializer):
         return float(obj.actual_quantity - obj.expected_quantity)
 
 
+class ReceivingCreateItemSerializer(serializers.Serializer):
+    raw_material_id = serializers.IntegerField()
+    actual_quantity = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        min_value=0
+    )
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
 class ReceivingRecordSerializer(serializers.ModelSerializer):
     items = ReceivingItemSerializer(many=True, read_only=True)
 
@@ -249,12 +233,26 @@ class ReceivingRecordSerializer(serializers.ModelSerializer):
         fields = ["id", "procurement", "company", "received_date", "status", "notes", "items"]
         read_only_fields = ["id", "company", "received_date"]
 
-
 class ReceivingCreateSerializer(serializers.Serializer):
     """For POST /api/receiving/ - record actual received quantities"""
     procurement_id = serializers.IntegerField()
-    items = serializers.ListField(child=serializers.DictField())
-    notes = serializers.CharField(required=False, default="")
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+    items = ReceivingCreateItemSerializer(many=True)
+
+    def validate_items(self, items):
+        if not items:
+            raise serializers.ValidationError("items cannot be empty.")
+
+        seen = set()
+        for item in items:
+            raw_material_id = item["raw_material_id"]
+            if raw_material_id in seen:
+                raise serializers.ValidationError(
+                    f"Duplicate raw_material_id found: {raw_material_id}"
+                )
+            seen.add(raw_material_id)
+
+        return items
 
 
 # ---- Processing ----
@@ -321,3 +319,25 @@ class DeliveryOrderSerializer(serializers.ModelSerializer):
 class DeliveryGenerateSerializer(serializers.Serializer):
     date = serializers.DateField()
     meal_time = serializers.ChoiceField(choices=['B', 'L', 'D'])
+
+class DeliveryUpdateItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    count = serializers.IntegerField(min_value=0)
+
+
+class DeliveryUpdateSerializer(serializers.Serializer):
+    items = DeliveryUpdateItemSerializer(many=True)
+
+    def validate_items(self, items):
+        if not items:
+            raise serializers.ValidationError("items cannot be empty.")
+
+        seen = set()
+        for item in items:
+            if item["id"] in seen:
+                raise serializers.ValidationError(
+                    f"Duplicate item id: {item['id']}"
+                )
+            seen.add(item["id"])
+
+        return items

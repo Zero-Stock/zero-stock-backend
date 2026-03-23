@@ -276,6 +276,8 @@ class ReceivingRecord(models.Model):
     procurement = models.ForeignKey(ProcurementRequest, on_delete=models.CASCADE, related_name='receivings')
     company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE)
     received_date = models.DateField(auto_now_add=True, verbose_name="Received Date")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     notes = models.TextField(blank=True, verbose_name="Notes")
 
