@@ -20,7 +20,7 @@ class SeedMenuDemoCommandTest(TestCase):
 
         call_command("seed_menu_demo", stdout=out)
 
-        company = ClientCompany.objects.get(code="DEMO01")
+        company = ClientCompany.objects.get(code="testCompanyCode1")
         material = RawMaterial.objects.get(name="Chicken Breast")
         dish = Dish.objects.get(name="Herb Chicken Rice")
         menu = WeeklyMenu.objects.get(
@@ -51,7 +51,7 @@ class SeedMenuDemoCommandTest(TestCase):
         self.assertEqual(Dish.objects.filter(name__in=[item["name"] for item in SEED_DISHES]).count(), len(SEED_DISHES))
         self.assertEqual(
             WeeklyMenu.objects.filter(
-                company__code="DEMO01",
+                company__code="testCompanyCode1",
                 diet_category__name="Standard Menu",
             ).count(),
             len(SEED_MEAL_PLANS),
@@ -71,12 +71,12 @@ class SeedMenuDemoCommandTest(TestCase):
 
         call_command("seed_menu_demo", "--delete-only")
 
-        self.assertFalse(ClientCompany.objects.filter(code="DEMO01").exists())
+        self.assertTrue(ClientCompany.objects.filter(code="testCompanyCode1").exists())
         self.assertFalse(RawMaterial.objects.filter(name="Chicken Breast").exists())
         self.assertFalse(Dish.objects.filter(name="Herb Chicken Rice").exists())
         self.assertEqual(
             WeeklyMenu.objects.filter(
-                company__code="DEMO01",
+                company__code="testCompanyCode1",
                 diet_category__name="Standard Menu",
             ).count(),
             0,
