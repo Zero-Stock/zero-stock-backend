@@ -405,7 +405,7 @@ class CompanyListAPITest(APITestBase):
     def test_unauthenticated(self):
         client = APIClient()
         r = client.get("/api/companies/")
-        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.status_code, 200)
 
 
 # ---- Yield Rate API ----

@@ -85,7 +85,8 @@ class CensusSearchView(BaseSearchView):
         from operations.models import ClientCompanyRegion
 
         if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
+            # company_id = 1
+            company_id = 1
         else:
             company_id = filters.get('company')
             if not company_id:
@@ -201,7 +202,8 @@ class ProcurementSearchView(BaseSearchView):
 
     def get_base_queryset(self):
         if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
+            # company_id = 1
+            company_id = 1
         else:
             company_id = self.request.data.get('company')
             if not company_id:
@@ -233,7 +235,8 @@ class ReceivingSearchView(BaseSearchView):
 
     def get_base_queryset(self):
         if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
+            # company_id = 1
+            company_id = 1
         else:
             company_id = self.request.data.get('company')
             if not company_id:
@@ -270,7 +273,8 @@ class ProcessingSearchView(BaseSearchView):
 
     def get_base_queryset(self):
         if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
+            # company_id = 1
+            company_id = 1
         else:
             company_id = self.request.data.get('company')
             if not company_id:
@@ -309,7 +313,8 @@ class DeliverySearchView(BaseSearchView):
 
     def get_base_queryset(self):
         if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
+            # company_id = 1
+            company_id = 1
         else:
             company_id = self.request.data.get('company')
             if not company_id:

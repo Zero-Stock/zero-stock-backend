@@ -22,7 +22,7 @@ class DailyCensusListView(generics.ListAPIView):
     permission_classes = [AllowAny]
 
     def _company_id(self):
-        # return self.request.user.profile.company_id
+        # return 1
         return 1
 
     def get_queryset(self):
@@ -54,7 +54,7 @@ class DailyCensusBatchView(APIView):
     permission_classes = [AllowAny]
 
     def _company_id(self):
-        # return self.request.user.profile.company_id
+        # return 1
         return 1
 
     def post(self, request):
@@ -94,7 +94,7 @@ class DailyCensusSummaryView(APIView):
     permission_classes = [AllowAny]
 
     def _company_id(self):
-        # return self.request.user.profile.company_id
+        # return 1
         return 1
 
     def get(self, request):

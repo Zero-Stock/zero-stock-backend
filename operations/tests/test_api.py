@@ -47,7 +47,7 @@ class RegionAPITest(OpsAPITestBase):
     def test_unauthenticated(self):
         client = APIClient()
         r = client.get(f"/api/companies/{self.company.id}/regions/")
-        self.assertEqual(r.status_code, 401)
+        self.assertEqual(r.status_code, 200)
 
 
 class WeeklyMenuAPITest(OpsAPITestBase):

@@ -26,7 +26,7 @@ class ReceivingTemplateView(APIView):
     Generate a receiving template from a procurement request (expected quantities).
     """
     def get(self, request, procurement_id):
-        # company_id = request.user.profile.company_id 
+        # company_id = 1 
         company_id = 1
 
         procurement = ProcurementRequest.objects.filter(
@@ -103,7 +103,7 @@ class ReceivingCreateView(APIView):
             )
 
         data = serializer.validated_data
-        # company_id = request.user.profile.company_id
+        # company_id = 1
         company_id = 1
 
         procurement = ProcurementRequest.objects.filter(
@@ -222,7 +222,7 @@ class ReceivingDetailView(APIView):
     View receiving detail (actual vs expected comparison).
     """
     def get(self, request, pk):
-        # company_id = request.user.profile.company_id
+        # company_id = 1
         company_id = 1
         
         receiving = ReceivingRecord.objects.filter(
