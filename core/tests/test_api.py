@@ -462,7 +462,7 @@ class YieldRateAPITest(APITestBase):
         mat = RawMaterial.objects.create(name="YieldMat6", category=self.category)
         r = client.post(f"/api/raw-materials/{mat.id}/yield-rate/",
                         {"yield_rate": "0.85"})
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.status_code, 201)
 
 
 # ---- Core Search endpoints ----

@@ -84,14 +84,7 @@ class CensusSearchView(BaseSearchView):
         from core.models import DietCategory
         from operations.models import ClientCompanyRegion
 
-        if self.request.user.is_authenticated:
-            # company_id = 1
-            company_id = 1
-        else:
-            company_id = filters.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        company_id = 1
 
         # Determine target dates safely
         target_dates = []
@@ -201,14 +194,7 @@ class ProcurementSearchView(BaseSearchView):
     default_ordering = '-target_date'
 
     def get_base_queryset(self):
-        if self.request.user.is_authenticated:
-            # company_id = 1
-            company_id = 1
-        else:
-            company_id = self.request.data.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        company_id = 1
         return ProcurementRequest.objects.filter(company_id=company_id)
 
     def apply_filters(self, qs, filters):
@@ -234,14 +220,7 @@ class ReceivingSearchView(BaseSearchView):
     default_ordering = '-received_date'
 
     def get_base_queryset(self):
-        if self.request.user.is_authenticated:
-            # company_id = 1
-            company_id = 1
-        else:
-            company_id = self.request.data.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        company_id = 1
 
         return ReceivingRecord.objects.filter(
             company_id=company_id
@@ -272,14 +251,7 @@ class ProcessingSearchView(BaseSearchView):
     default_ordering = '-target_date'
 
     def get_base_queryset(self):
-        if self.request.user.is_authenticated:
-            # company_id = 1
-            company_id = 1
-        else:
-            company_id = self.request.data.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        company_id = 1
 
         return ProcessingOrder.objects.filter(
             company_id=company_id
@@ -312,14 +284,7 @@ class DeliverySearchView(BaseSearchView):
     default_ordering = '-target_date'
 
     def get_base_queryset(self):
-        if self.request.user.is_authenticated:
-            # company_id = 1
-            company_id = 1
-        else:
-            company_id = self.request.data.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        company_id = 1
 
         return DeliveryOrder.objects.filter(
             company_id=company_id
