@@ -14,7 +14,7 @@ from django.db.models import Sum
 from core.models import RawMaterial, DishIngredient, RawMaterialYieldRate
 from .models import (
     ReceivingRecord, ReceivingItem,
-    DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu,
+    DailyCensus, WeeklyMenu, WeeklyMenuDish,
 )
 
 
@@ -55,15 +55,6 @@ def calculate_theoretical_usage(company_id: int, target_date) -> dict:
 
     def get_dishes_for(diet_id: int, meal_type: str):
         """Returns list of (dish, quantity) tuples."""
-        dm = DailyMenu.objects.filter(
-            company_id=company_id,
-            date=target_date,
-            diet_id=diet_id,
-            meal_type=meal_type,
-        ).prefetch_related("dishes").first()
-        if dm:
-            return [(dish, 1) for dish in dm.dishes.all()]
-
         wm = WeeklyMenu.objects.filter(
             company_id=company_id,
             diet_category_id=diet_id,

@@ -11,7 +11,7 @@ from decimal import Decimal
 from collections import defaultdict
 
 from common.views import success_response, error_response
-from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish, DailyMenu
+from ..models import ProcurementRequest, ProcurementItem, DailyCensus, WeeklyMenu, WeeklyMenuDish
 from core.models import DishIngredient, SupplierMaterial, RawMaterialYieldRate
 from ..serializers import ProcurementRequestSerializer, ProcurementItemSerializer, ProcurementGenerateSerializer
 
@@ -188,15 +188,6 @@ class ProcurementGenerateView(APIView):
 
         def get_dishes_for(diet_id: int, meal_type: str):
             """Returns list of (dish, quantity) tuples for this diet+meal combo."""
-            dm = DailyMenu.objects.filter(
-                company_id=company_id,
-                date=target_date,
-                diet_id=diet_id,
-                meal_type=meal_type,
-            ).prefetch_related("dishes").first()
-            if dm:
-                return [(dish, 1) for dish in dm.dishes.all()]
-
             wm = WeeklyMenu.objects.filter(
                 company_id=company_id,
                 diet_category_id=diet_id,
