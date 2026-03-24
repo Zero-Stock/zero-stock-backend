@@ -7,7 +7,8 @@ from common.views import BaseSearchView
 from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord, ProcessingOrder, DeliveryOrder
 from operations.serializers import (
     WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer, ProcessingOrderSerializer, DeliveryOrderSerializer)
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
 class WeeklyMenuSearchView(BaseSearchView):
@@ -47,14 +48,12 @@ class CensusSearchView(BaseSearchView):
     allowed_ordering = ['date', 'region_id', 'diet_category_id']
     default_ordering = 'date'
 
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [AllowAny]
+
     def get_base_queryset(self):
-        if self.request.user.is_authenticated:
-            company_id = self.request.user.profile.company_id
-        else:
-            company_id = self.request.data.get('company')
-            if not company_id:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied("Test Mode: 'company' parameter is required in payload when unauthenticated.")
+        # Hardcoded company_id=1 for local development/integration
+        company_id = 1
         return DailyCensus.objects.filter(company_id=company_id)
 
     def apply_filters(self, qs, filters):
