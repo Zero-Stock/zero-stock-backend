@@ -229,19 +229,18 @@ class ProcurementGenerateView(APIView):
                         processing = ing.processing
                         yield_rate = get_yield_rate_for(raw.id, target_date)
                         if yield_rate <= 0:
-                            method_name = processing.method_name if processing else "N/A"
                             raise ValidationError(
-                                {"detail": f"Invalid yield_rate for {raw.name} [{method_name}]."}
+                                {"detail": f"Invalid yield_rate for {raw.name}."}
                             )
 
                         net_per_serv = ing.net_quantity * dish_qty
                         total_net = Decimal(people) * net_per_serv
                         total_gross = total_net / yield_rate
 
-                        method_name = processing.method_name if processing else "无加工"
+                        processing_name = processing.method_name if processing else "raw"
                         note = (
                             f"{target_date} {meal} | diet={diet_id} "
-                            f"| {dish.name} x{dish_qty} | {raw.name}[{method_name}] "
+                            f"| {dish.name} x{dish_qty} | {raw.name}[{processing_name}] "
                             f"net={ing.net_quantity}*{dish_qty} * {people} / yield={yield_rate} => gross={total_gross}"
                         )
                         add_demand(raw, total_gross, note)
