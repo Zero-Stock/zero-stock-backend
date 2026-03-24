@@ -12,7 +12,7 @@ from operations.models import ClientCompanyRegion, DailyCensus, WeeklyMenu, Week
 class OpsAPITestBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.company = ClientCompany.objects.create(name="Test Hospital", code="HOSP01")
+        cls.company = ClientCompany.objects.create(id=1, name="Test Hospital", code="HOSP01")
         cls.user = User.objects.create_user(username="opsuser", password="testpass123")
         cls.profile = UserProfile.objects.create(user=cls.user, company=cls.company, role="RW")
         cls.category = MaterialCategory.objects.create(name="Fresh")
@@ -353,7 +353,8 @@ class ReceivingAPITest(OpsAPITestBase):
     def _create_procurement(self, target_date=None, status="SUBMITTED"):
         from operations.models import ProcurementRequest, ProcurementItem
         from core.models import RawMaterial, Supplier, SupplierMaterial
-        td = target_date or date.today()
+        from datetime import timedelta
+        td = target_date or (date.today() + timedelta(days=1))
         pr = ProcurementRequest.objects.create(
             company=self.company, target_date=td, status=status)
         mat = RawMaterial.objects.create(name=f"RecvMat{td}", category=self.category)
@@ -682,7 +683,7 @@ class InventoryOnReceivingTest(OpsAPITestBase):
         mat.refresh_from_db()
         self.assertEqual(mat.stock, Decimal("0"))
         # Should have a warning in the message
-        self.assertIn("库存警告", r.json()["message"])
+        self.assertIn("Inventory warnings", r.json()["message"])
 
     def test_receiving_with_no_menu_only_adds_stock(self):
         """If no menu/census data, usage is 0, stock only increases."""

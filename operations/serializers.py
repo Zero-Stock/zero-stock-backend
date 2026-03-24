@@ -76,6 +76,11 @@ class ProcurementItemSerializer(serializers.ModelSerializer):
     category = serializers.CharField(source="raw_material.category.name", read_only=True)
     supplier_name = serializers.CharField(source="supplier.name", read_only=True, default=None)
 
+    # Computed dual-unit fields
+    demand_unit_qty = serializers.SerializerMethodField()
+    stock_unit_qty = serializers.SerializerMethodField()
+    purchase_unit_qty = serializers.SerializerMethodField()
+
     class Meta:
         model = ProcurementItem
         fields = [
@@ -83,16 +88,36 @@ class ProcurementItemSerializer(serializers.ModelSerializer):
             "raw_material",
             "raw_material_name",
             "category",
-            "total_gross_quantity",
-            "am_quantity",
-            "pm_quantity",
+            "demand_quantity",
+            "stock_quantity",
+            "purchase_quantity",
+            "demand_unit_qty",
+            "stock_unit_qty",
+            "purchase_unit_qty",
             "supplier",
             "supplier_name",
             "supplier_unit_name",
-            "supplier_unit_qty",
+            "supplier_kg_per_unit",
             "supplier_price",
             "notes",
         ]
+
+    def _to_unit(self, kg_value, kg_per_unit, ceiling=False):
+        """Convert kg to supplier unit. Optionally apply ceiling."""
+        if not kg_per_unit or kg_per_unit <= 0:
+            return None
+        import math
+        result = float(kg_value) / float(kg_per_unit)
+        return math.ceil(result) if ceiling else round(result, 2)
+
+    def get_demand_unit_qty(self, obj):
+        return self._to_unit(obj.demand_quantity, obj.supplier_kg_per_unit)
+
+    def get_stock_unit_qty(self, obj):
+        return self._to_unit(obj.stock_quantity, obj.supplier_kg_per_unit)
+
+    def get_purchase_unit_qty(self, obj):
+        return self._to_unit(obj.purchase_quantity, obj.supplier_kg_per_unit, ceiling=True)
 
 
 class ProcurementRequestSerializer(serializers.ModelSerializer):
@@ -240,9 +265,6 @@ class ReceivingCreateSerializer(serializers.Serializer):
     items = ReceivingCreateItemSerializer(many=True)
 
     def validate_items(self, items):
-        if not items:
-            raise serializers.ValidationError("items cannot be empty.")
-
         seen = set()
         for item in items:
             raw_material_id = item["raw_material_id"]
