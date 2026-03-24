@@ -14,7 +14,7 @@ from ..serializers import DailyCensusSerializer, DailyCensusBatchSerializer
 
 class DailyCensusListView(generics.ListAPIView):
     serializer_class = DailyCensusSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
     def _company_id(self):
         # return self.request.user.profile.company_id
@@ -45,7 +45,7 @@ class DailyCensusListView(generics.ListAPIView):
 
 
 class DailyCensusBatchView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
     def _company_id(self):
         # return self.request.user.profile.company_id
@@ -84,7 +84,7 @@ class DailyCensusBatchView(APIView):
 
 
 class DailyCensusSummaryView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = []
 
     def _company_id(self):
         # return self.request.user.profile.company_id
