@@ -17,7 +17,8 @@ class DailyCensusListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
     def _company_id(self):
-        return self.request.user.profile.company_id
+        # return self.request.user.profile.company_id
+        return 1
 
     def get_queryset(self):
         qp = self.request.query_params
@@ -47,7 +48,8 @@ class DailyCensusBatchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _company_id(self):
-        return self.request.user.profile.company_id
+        # return self.request.user.profile.company_id
+        return 1
 
     def post(self, request):
         serializer = DailyCensusBatchSerializer(data=request.data)
@@ -85,7 +87,8 @@ class DailyCensusSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _company_id(self):
-        return self.request.user.profile.company_id
+        # return self.request.user.profile.company_id
+        return 1
 
     def get(self, request):
         qp = request.query_params
