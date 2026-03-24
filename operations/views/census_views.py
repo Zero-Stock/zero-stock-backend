@@ -12,12 +12,14 @@ from ..models import DailyCensus
 from ..serializers import DailyCensusSerializer, DailyCensusBatchSerializer
 
 
+from rest_framework.permissions import AllowAny, IsAuthenticated
+
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class DailyCensusListView(generics.ListAPIView):
     serializer_class = DailyCensusSerializer
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def _company_id(self):
         # return self.request.user.profile.company_id
@@ -49,7 +51,7 @@ class DailyCensusListView(generics.ListAPIView):
 
 class DailyCensusBatchView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def _company_id(self):
         # return self.request.user.profile.company_id
@@ -89,7 +91,7 @@ class DailyCensusBatchView(APIView):
 
 class DailyCensusSummaryView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def _company_id(self):
         # return self.request.user.profile.company_id

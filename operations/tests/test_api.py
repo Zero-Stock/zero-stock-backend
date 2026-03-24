@@ -131,6 +131,15 @@ class CensusAPITest(OpsAPITestBase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["results"]["total"], 50)
 
+    def test_unauthenticated_access_allowed(self):
+        self.client.logout()  # ensure no credentials
+        r1 = self.client.get("/api/census/?date=2026-03-01")
+        self.assertEqual(r1.status_code, 200)
+
+        data = {"date": "2026-03-05", "items": []}
+        r2 = self.client.post("/api/census/batch/", data, format="json")
+        self.assertEqual(r2.status_code, 200)
+
 
 # ---- Operations Search endpoints ----
 
