@@ -9,7 +9,7 @@ from core.management.commands.seed_menu_demo import (
     SEED_DISHES,
     SEED_DIETS,
     SEED_MATERIALS,
-    SEED_MEAL_PLANS,
+    SEED_MEAL_PLANS_BY_DIET,
     SEED_SUPPLIERS,
 )
 
@@ -35,9 +35,24 @@ class SeedMenuDemoCommandTest(TestCase):
             DietCategory.objects.filter(name__in=SEED_DIETS).count(),
             len(SEED_DIETS),
         )
+        self.assertTrue(
+            WeeklyMenu.objects.filter(
+                company__code="testCompanyCode1",
+                diet_category__name="Light Diet",
+            ).exists()
+        )
+        self.assertTrue(
+            WeeklyMenu.objects.filter(
+                company__code="testCompanyCode1",
+                diet_category__name="High Protein",
+            ).exists()
+        )
         self.assertTrue(dish.ingredients.filter(raw_material__name="Chicken Breast").exists())
         self.assertTrue(WeeklyMenuDish.objects.filter(menu=menu, dish=dish, quantity=1).exists())
-        self.assertIn(f"{len(SEED_MEAL_PLANS)} meal plans", out.getvalue())
+        self.assertIn(
+            f"{sum(len(items) for items in SEED_MEAL_PLANS_BY_DIET.values())} meal plans",
+            out.getvalue(),
+        )
 
     def test_seed_menu_demo_is_idempotent(self):
         call_command("seed_menu_demo")
@@ -52,9 +67,9 @@ class SeedMenuDemoCommandTest(TestCase):
         self.assertEqual(
             WeeklyMenu.objects.filter(
                 company__code="testCompanyCode1",
-                diet_category__name="Standard Menu",
+                diet_category__name__in=SEED_DIETS,
             ).count(),
-            len(SEED_MEAL_PLANS),
+            sum(len(items) for items in SEED_MEAL_PLANS_BY_DIET.values()),
         )
 
     def test_seed_menu_demo_reset_restores_seeded_values(self):
