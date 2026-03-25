@@ -653,6 +653,56 @@ SEED_MEAL_PLANS = [
     },
 ]
 
+SEED_MEAL_PLANS_BY_DIET = {
+    "Standard Menu": SEED_MEAL_PLANS,
+    "Light Diet": [
+        {"day_of_week": 1, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 1}]},
+        {"day_of_week": 1, "meal_time": "L", "dishes": [{"name": "Tomato Tofu Soup", "quantity": 1}, {"name": "Cucumber Salad", "quantity": 1}]},
+        {"day_of_week": 1, "meal_time": "D", "dishes": [{"name": "Steamed Tofu Bowl", "quantity": 1}, {"name": "Garlic Bok Choy", "quantity": 1}]},
+        {"day_of_week": 2, "meal_time": "B", "dishes": [{"name": "Scrambled Eggs and Tomato", "quantity": 1}]},
+        {"day_of_week": 2, "meal_time": "L", "dishes": [{"name": "Mushroom Chicken Rice Bowl", "quantity": 1}]},
+        {"day_of_week": 2, "meal_time": "D", "dishes": [{"name": "Tomato Tofu Soup", "quantity": 1}]},
+        {"day_of_week": 3, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 1}]},
+        {"day_of_week": 3, "meal_time": "L", "dishes": [{"name": "Chicken and Broccoli", "quantity": 1}]},
+        {"day_of_week": 3, "meal_time": "D", "dishes": [{"name": "Tofu Vegetable Bowl", "quantity": 1}]},
+        {"day_of_week": 4, "meal_time": "B", "dishes": [{"name": "Roasted Potato Hash", "quantity": 1}]},
+        {"day_of_week": 4, "meal_time": "L", "dishes": [{"name": "Salmon Rice Plate", "quantity": 1}]},
+        {"day_of_week": 4, "meal_time": "D", "dishes": [{"name": "Spinach Egg Soup", "quantity": 1}, {"name": "Steamed Tofu Bowl", "quantity": 1}]},
+        {"day_of_week": 5, "meal_time": "B", "dishes": [{"name": "Scrambled Eggs and Tomato", "quantity": 1}]},
+        {"day_of_week": 5, "meal_time": "L", "dishes": [{"name": "Vegetable Fried Rice", "quantity": 1}]},
+        {"day_of_week": 5, "meal_time": "D", "dishes": [{"name": "Tomato Tofu Soup", "quantity": 1}, {"name": "Garlic Bok Choy", "quantity": 1}]},
+        {"day_of_week": 6, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 1}]},
+        {"day_of_week": 6, "meal_time": "L", "dishes": [{"name": "Tofu Vegetable Bowl", "quantity": 1}]},
+        {"day_of_week": 6, "meal_time": "D", "dishes": [{"name": "Salmon Rice Plate", "quantity": 1}]},
+        {"day_of_week": 7, "meal_time": "B", "dishes": [{"name": "Roasted Potato Hash", "quantity": 1}]},
+        {"day_of_week": 7, "meal_time": "L", "dishes": [{"name": "Mushroom Chicken Rice Bowl", "quantity": 1}]},
+        {"day_of_week": 7, "meal_time": "D", "dishes": [{"name": "Steamed Tofu Bowl", "quantity": 1}]},
+    ],
+    "High Protein": [
+        {"day_of_week": 1, "meal_time": "B", "dishes": [{"name": "Scrambled Eggs and Tomato", "quantity": 2}]},
+        {"day_of_week": 1, "meal_time": "L", "dishes": [{"name": "Herb Chicken Rice", "quantity": 2}]},
+        {"day_of_week": 1, "meal_time": "D", "dishes": [{"name": "Ginger Beef Stir Fry", "quantity": 2}]},
+        {"day_of_week": 2, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 2}]},
+        {"day_of_week": 2, "meal_time": "L", "dishes": [{"name": "Chicken and Broccoli", "quantity": 2}]},
+        {"day_of_week": 2, "meal_time": "D", "dishes": [{"name": "Salmon Rice Plate", "quantity": 2}]},
+        {"day_of_week": 3, "meal_time": "B", "dishes": [{"name": "Scrambled Eggs and Tomato", "quantity": 2}]},
+        {"day_of_week": 3, "meal_time": "L", "dishes": [{"name": "Mushroom Chicken Rice Bowl", "quantity": 2}]},
+        {"day_of_week": 3, "meal_time": "D", "dishes": [{"name": "Beef and Potato Stew", "quantity": 2}]},
+        {"day_of_week": 4, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 2}]},
+        {"day_of_week": 4, "meal_time": "L", "dishes": [{"name": "Salmon Rice Plate", "quantity": 2}]},
+        {"day_of_week": 4, "meal_time": "D", "dishes": [{"name": "Tofu Vegetable Bowl", "quantity": 2}]},
+        {"day_of_week": 5, "meal_time": "B", "dishes": [{"name": "Spinach Egg Soup", "quantity": 2}]},
+        {"day_of_week": 5, "meal_time": "L", "dishes": [{"name": "Chicken and Broccoli", "quantity": 2}]},
+        {"day_of_week": 5, "meal_time": "D", "dishes": [{"name": "Beef and Potato Stew", "quantity": 2}]},
+        {"day_of_week": 6, "meal_time": "B", "dishes": [{"name": "Scrambled Eggs and Tomato", "quantity": 2}]},
+        {"day_of_week": 6, "meal_time": "L", "dishes": [{"name": "Herb Chicken Rice", "quantity": 2}]},
+        {"day_of_week": 6, "meal_time": "D", "dishes": [{"name": "Salmon Rice Plate", "quantity": 2}]},
+        {"day_of_week": 7, "meal_time": "B", "dishes": [{"name": "Savory Oatmeal Bowl", "quantity": 2}]},
+        {"day_of_week": 7, "meal_time": "L", "dishes": [{"name": "Shrimp Fried Rice", "quantity": 2}]},
+        {"day_of_week": 7, "meal_time": "D", "dishes": [{"name": "Ginger Beef Stir Fry", "quantity": 2}]},
+    ],
+}
+
 
 class Command(BaseCommand):
     help = (
@@ -696,8 +746,8 @@ class Command(BaseCommand):
         diet = diets[PRIMARY_DIET]
         suppliers = self._seed_suppliers()
         materials = self._seed_materials(suppliers)
-        dishes = self._seed_dishes(materials, diet)
-        menus_created = self._seed_meal_plans(company, diet, dishes)
+        dishes = self._seed_dishes(materials, diets)
+        menus_created = self._seed_meal_plans(company, diets, dishes)
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -770,7 +820,7 @@ class Command(BaseCommand):
 
         return materials
 
-    def _seed_dishes(self, materials, diet):
+    def _seed_dishes(self, materials, diets):
         dishes = {}
         for item in SEED_DISHES:
             dish, _ = Dish.objects.update_or_create(
@@ -799,26 +849,30 @@ class Command(BaseCommand):
                     net_quantity=ingredient["net_quantity"],
                 )
 
-            dish.allowed_diets.set([diet])
+            dish.allowed_diets.set(list(diets.values()))
             dishes[item["name"]] = dish
         return dishes
 
-    def _seed_meal_plans(self, company, diet, dishes):
-        for item in SEED_MEAL_PLANS:
-            menu, _ = WeeklyMenu.objects.update_or_create(
-                company=company,
-                diet_category=diet,
-                day_of_week=item["day_of_week"],
-                meal_time=item["meal_time"],
-            )
-            WeeklyMenuDish.objects.filter(menu=menu).delete()
-            for entry in item["dishes"]:
-                WeeklyMenuDish.objects.create(
-                    menu=menu,
-                    dish=dishes[entry["name"]],
-                    quantity=entry["quantity"],
+    def _seed_meal_plans(self, company, diets, dishes):
+        total = 0
+        for diet_name, items in SEED_MEAL_PLANS_BY_DIET.items():
+            diet = diets[diet_name]
+            for item in items:
+                menu, _ = WeeklyMenu.objects.update_or_create(
+                    company=company,
+                    diet_category=diet,
+                    day_of_week=item["day_of_week"],
+                    meal_time=item["meal_time"],
                 )
-        return len(SEED_MEAL_PLANS)
+                WeeklyMenuDish.objects.filter(menu=menu).delete()
+                for entry in item["dishes"]:
+                    WeeklyMenuDish.objects.create(
+                        menu=menu,
+                        dish=dishes[entry["name"]],
+                        quantity=entry["quantity"],
+                    )
+                total += 1
+        return total
 
     def _replace_specs(self, material, specs):
         desired = {name.strip() for name in specs if name and name.strip()}
@@ -838,17 +892,14 @@ class Command(BaseCommand):
             )
 
     def _reset_seed_data(self):
-        menu_day_pairs = [
-            (item["day_of_week"], item["meal_time"])
-            for item in SEED_MEAL_PLANS
-        ]
-        for day_of_week, meal_time in menu_day_pairs:
-            WeeklyMenu.objects.filter(
-                company__code=SEED_COMPANY["code"],
-                diet_category__name=PRIMARY_DIET,
-                day_of_week=day_of_week,
-                meal_time=meal_time,
-            ).delete()
+        for diet_name, items in SEED_MEAL_PLANS_BY_DIET.items():
+            for item in items:
+                WeeklyMenu.objects.filter(
+                    company__code=SEED_COMPANY["code"],
+                    diet_category__name=diet_name,
+                    day_of_week=item["day_of_week"],
+                    meal_time=item["meal_time"],
+                ).delete()
 
         dish_names = [item["name"] for item in SEED_DISHES]
         Dish.objects.filter(name__in=dish_names).delete()
