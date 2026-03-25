@@ -4,9 +4,9 @@ POST /search/ endpoints for operations models.
 Each view inherits BaseSearchView and defines its own filter fields.
 """
 from common.views import BaseSearchView
-from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord, ProcessingOrder, DeliveryOrder
+from operations.models import WeeklyMenu, DailyCensus, ProcurementRequest, ReceivingRecord, DeliveryOrder
 from operations.serializers import (
-    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer, ProcessingOrderSerializer, DeliveryOrderSerializer)
+    WeeklyMenuSerializer, DailyCensusSerializer, ProcurementRequestSerializer, ReceivingRecordSerializer,  DeliveryOrderSerializer)
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -240,39 +240,7 @@ class ReceivingSearchView(BaseSearchView):
 
         return qs
     
-class ProcessingSearchView(BaseSearchView):
-    """
-    POST /api/processing/search/
-    Filters: status(exact), date(exact), start(>=), end(<=)
-    Ordering: target_date, id
-    """
-    serializer_class = ProcessingOrderSerializer
-    allowed_ordering = ['target_date', 'id']
-    default_ordering = '-target_date'
 
-    def get_base_queryset(self):
-        company_id = 1
-
-        return ProcessingOrder.objects.filter(
-            company_id=company_id
-        ).select_related('company').prefetch_related(
-            'items__raw_material', 'items__processed_material', 'items__dish'
-        )
-
-    def apply_filters(self, qs, filters):
-        if filters.get('status'):
-            qs = qs.filter(status=filters['status'])
-
-        if filters.get('date'):
-            qs = qs.filter(target_date=filters['date'])
-        else:
-            if filters.get('start'):
-                qs = qs.filter(target_date__gte=filters['start'])
-            if filters.get('end'):
-                qs = qs.filter(target_date__lte=filters['end'])
-
-        return qs
-    
 class DeliverySearchView(BaseSearchView):
     """
     POST /api/delivery/search/

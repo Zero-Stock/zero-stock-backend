@@ -22,10 +22,7 @@ from .receiving_views import (
 )
 from .processing_views import (
     ProcessingGenerateView,
-    ProcessingDetailView,
-    ProcessingByMaterialView,
-    ProcessingByDishView,
-    ProcessingByWorkshopView,
+    ProcessingSearchView,
 )
 from .cooking_views import (
     CookingTodayView,

@@ -4,7 +4,6 @@ from .models import (
     ClientCompanyRegion, DailyCensus, WeeklyMenu,
     ProcurementRequest, ProcurementItem,
     ReceivingRecord, ReceivingItem,
-    ProcessingOrder, ProcessingItem,
     DeliveryOrder, DeliveryItem
 )
 
@@ -278,36 +277,12 @@ class ReceivingCreateSerializer(serializers.Serializer):
 
 
 # ---- Processing ----
-
-class ProcessingItemSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.CharField(source="raw_material.name", read_only=True)
-    method_name = serializers.SerializerMethodField()
-    dish_name = serializers.CharField(source="dish.name", read_only=True)
-
-    class Meta:
-        model = ProcessingItem
-        fields = [
-            "id", "raw_material", "raw_material_name",
-            "processed_material", "method_name",
-            "dish", "dish_name",
-            "net_quantity", "gross_quantity",
-        ]
-
-    def get_method_name(self, obj):
-        return obj.processed_material.method_name if obj.processed_material else None
-
-
-class ProcessingOrderSerializer(serializers.ModelSerializer):
-    items = ProcessingItemSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = ProcessingOrder
-        fields = ["id", "company", "target_date", "status", "created_at", "items"]
-        read_only_fields = ["id", "company", "status", "created_at"]
-
-
 class ProcessingGenerateSerializer(serializers.Serializer):
     date = serializers.DateField()
+
+class ProcessingSearchSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    material_id = serializers.IntegerField(required=False)
 
 
 # ---- Delivery ----

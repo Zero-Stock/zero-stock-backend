@@ -339,7 +339,13 @@ class ProcessingItem(models.Model):
     dish = models.ForeignKey(Dish, on_delete=models.CASCADE, verbose_name="Source Dish")
     net_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Net Qty (kg)")
     gross_quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Gross Qty (kg)")
-
+    meal_time = models.CharField(
+    max_length=1,
+    choices=WeeklyMenu.MEAL_CHOICES,
+    null=True,
+    blank=True,
+    verbose_name="Meal Time"
+)
     class Meta:
         verbose_name = "Processing Item"
 
