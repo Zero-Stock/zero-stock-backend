@@ -1,5 +1,5 @@
 # operations/urls.py
-from django.urls import path, include
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .viewsets import WeeklyMenuViewSet
 from .views import (
@@ -14,8 +14,7 @@ from .views import (
     # Receiving
     ReceivingTemplateView, ReceivingCreateView, ReceivingDetailView,
     # Processing
-    ProcessingGenerateView, ProcessingDetailView,
-    ProcessingByMaterialView, ProcessingByDishView, ProcessingByWorkshopView,
+    ProcessingGenerateView, ProcessingSearchView,
     # Cooking
     CookingTodayView, CookingRecipeView,
     # Delivery
@@ -23,7 +22,7 @@ from .views import (
     DeliveryByRegionView, DeliveryExportView,
 )
 from .views.search_views import (
-    WeeklyMenuSearchView, CensusSearchView, ProcurementSearchView, ReceivingSearchView, ProcessingSearchView, DeliverySearchView,
+    WeeklyMenuSearchView, CensusSearchView, ProcurementSearchView, ReceivingSearchView, DeliverySearchView,
 )
 
 router = DefaultRouter()
@@ -59,10 +58,7 @@ urlpatterns = [
 
     # ---- Processing ----
     path("processing/generate/", ProcessingGenerateView.as_view(), name="processing-generate"),
-    path("processing/<int:pk>/", ProcessingDetailView.as_view(), name="processing-detail"),
-    path("processing/<int:pk>/by-material/", ProcessingByMaterialView.as_view(), name="processing-by-material"),
-    path("processing/<int:pk>/by-dish/", ProcessingByDishView.as_view(), name="processing-by-dish"),
-    path("processing/<int:pk>/by-workshop/", ProcessingByWorkshopView.as_view(), name="processing-by-workshop"),
+    path("processing/search/", ProcessingSearchView.as_view()),
 
     # ---- Cooking ----
     path("cooking/today/", CookingTodayView.as_view(), name="cooking-today"),
