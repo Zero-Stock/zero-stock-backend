@@ -26,7 +26,8 @@ from core.models import (
 class APITestBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.company = ClientCompany.objects.create(name="Test Hospital", code="HOSP01")
+        #cls.company = ClientCompany.objects.create(name="Test Hospital", code="HOSP01")
+        cls.company = ClientCompany.objects.create(id=1, name="Test Hospital", code="HOSP01")
         cls.user = User.objects.create_user(username="apiuser", password="testpass123")
         cls.profile = UserProfile.objects.create(
             user=cls.user, company=cls.company, role="RW"

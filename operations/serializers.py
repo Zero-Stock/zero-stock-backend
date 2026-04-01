@@ -54,12 +54,13 @@ class DailyCensusBatchItemSerializer(serializers.Serializer):
 
 class DailyCensusBatchSerializer(serializers.Serializer):
     date = serializers.DateField()
-    # 如果你们用户能从 token 推出 company，就不需要前端传 company_id
     company_id = serializers.IntegerField(required=False)
     items = DailyCensusBatchItemSerializer(many=True)
 
     def validate_items(self, items):
-        # 避免同一个 (region_id, diet_category_id) 在同一批里重复
+        if not items:
+            raise serializers.ValidationError("This list may not be empty.")
+
         seen = set()
         for it in items:
             key = (it["region_id"], it["diet_category_id"])
@@ -190,33 +191,57 @@ class WeeklyMenuBatchItemSerializer(serializers.Serializer):
 class WeeklyMenuBatchSerializer(serializers.Serializer):
     menus = WeeklyMenuBatchItemSerializer(many=True)
 
+    def validate_menus(self, menus):
+        valid_meal_times = {"B", "L", "D"}
+
+        for menu in menus:
+            meal_time = menu.get("meal_time")
+            if meal_time not in valid_meal_times:
+                raise serializers.ValidationError(
+                    f"Invalid meal_time: {meal_time}"
+                )
+
+            dishes = menu.get("dishes", [])
+            for d in dishes:
+                if isinstance(d, dict):
+                    quantity = d.get("quantity", 1)
+                    if quantity <= 0:
+                        raise serializers.ValidationError(
+                            "Dish quantity must be greater than 0."
+                        )
+
+        return menus
+
     def create(self, validated_data):
-        from core.models import Dish
         from .models import WeeklyMenuDish
 
         results = []
-        for item in validated_data['menus']:
+        for item in validated_data["menus"]:
             menu, _ = WeeklyMenu.objects.update_or_create(
-                company_id=item['company'],
-                diet_category_id=item['diet_category'],
-                day_of_week=item['day_of_week'],
-                meal_time=item['meal_time'],
+                company_id=item["company"],
+                diet_category_id=item["diet_category"],
+                day_of_week=item["day_of_week"],
+                meal_time=item["meal_time"],
             )
-            # Clear existing dish associations
+
             WeeklyMenuDish.objects.filter(menu=menu).delete()
 
-            # Parse dishes: support both [1,2,3] and [{"dish_id":1,"quantity":2}]
-            for d in item['dishes']:
+            for d in item["dishes"]:
                 if isinstance(d, dict):
-                    dish_id = d.get('dish_id') or d.get('id')
-                    quantity = d.get('quantity', 1)
+                    dish_id = d.get("dish_id") or d.get("id")
+                    quantity = d.get("quantity", 1)
                 else:
                     dish_id = int(d)
                     quantity = 1
+
                 WeeklyMenuDish.objects.create(
-                    menu=menu, dish_id=dish_id, quantity=quantity
+                    menu=menu,
+                    dish_id=dish_id,
+                    quantity=quantity,
                 )
+
             results.append(menu)
+
         return results
 
 

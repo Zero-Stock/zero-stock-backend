@@ -90,18 +90,28 @@ class RawMaterialSerializerTest(SerializerTestBase):
             RawMaterialYieldRate.objects.filter(raw_material=obj).exists()
         )
 
-    def test_update_with_specs_adds_new(self):
+    def test_update_with_specs_replaces_existing(self):
         ProcessedMaterial.objects.create(
-            raw_material=self.material, method_name="Shredded"
+            raw_material=self.material,
+            method_name="Sliced",
         )
-        s = RawMaterialSerializer(
+
+        serializer = RawMaterialSerializer(
             self.material,
-            data={"specs": [{"method_name": "Diced"}]},
+            data={
+                "name": self.material.name,
+                "category": self.category.id,
+                "specs": [{"method_name": "Diced"}],
+            },
             partial=True,
         )
-        self.assertTrue(s.is_valid(), s.errors)
-        s.save()
-        self.assertEqual(self.material.specs.count(), 2)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        self.material.refresh_from_db()
+        self.assertEqual(self.material.specs.count(), 1)
+        self.assertTrue(self.material.specs.filter(method_name="Diced").exists())
+        self.assertFalse(self.material.specs.filter(method_name="Sliced").exists())
 
     def test_current_yield_rate_default(self):
         mat = RawMaterial.objects.create(name="NoYieldMat", category=self.category)
