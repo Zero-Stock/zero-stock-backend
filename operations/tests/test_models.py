@@ -38,13 +38,20 @@ from operations.models import (
 class OpsModelTestBase(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.company = ClientCompany.objects.create(name="Test Hospital", code="HOSP01")
+        cls.company = ClientCompany.objects.create(
+            name="Test Hospital",
+            code="HOSP01",
+        )
         cls.category = MaterialCategory.objects.create(name="Fresh")
-        cls.material = RawMaterial.objects.create(name="Potato", category=cls.category)
+        cls.material = RawMaterial.objects.create(
+            name="Potato",
+            category=cls.category,
+        )
         cls.diet = DietCategory.objects.create(name="Standard A")
         cls.dish = Dish.objects.create(name="Stir Fry Potato")
         cls.region = ClientCompanyRegion.objects.create(
-            company=cls.company, name="East Wing"
+            company=cls.company,
+            name="East Wing",
         )
 
 
@@ -57,12 +64,16 @@ class ClientCompanyRegionTest(OpsModelTestBase):
     def test_unique_together(self):
         with self.assertRaises(IntegrityError):
             ClientCompanyRegion.objects.create(
-                company=self.company, name="East Wing"
+                company=self.company,
+                name="East Wing",
             )
 
     def test_different_company_same_name(self):
         co2 = ClientCompany.objects.create(name="Other", code="OTHER01")
-        region2 = ClientCompanyRegion.objects.create(company=co2, name="East Wing")
+        region2 = ClientCompanyRegion.objects.create(
+            company=co2,
+            name="East Wing",
+        )
         self.assertIsNotNone(region2.id)
 
 
@@ -123,14 +134,19 @@ class WeeklyMenuDishTest(OpsModelTestBase):
 
     def test_str(self):
         md = WeeklyMenuDish.objects.create(
-            menu=self.menu, dish=self.dish, quantity=2
+            menu=self.menu,
+            dish=self.dish,
+            quantity=2,
         )
         s = str(md)
         self.assertIn("Stir Fry Potato", s)
         self.assertIn("x2", s)
 
     def test_default_quantity(self):
-        md = WeeklyMenuDish.objects.create(menu=self.menu, dish=self.dish)
+        md = WeeklyMenuDish.objects.create(
+            menu=self.menu,
+            dish=self.dish,
+        )
         self.assertEqual(md.quantity, 1)
 
     def test_unique_together(self):
@@ -174,7 +190,8 @@ class DailyCensusTest(OpsModelTestBase):
 class ProcurementRequestTest(OpsModelTestBase):
     def test_str(self):
         pr = ProcurementRequest.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         s = str(pr)
         self.assertIn("2026-03-01", s)
@@ -182,9 +199,27 @@ class ProcurementRequestTest(OpsModelTestBase):
 
     def test_default_status(self):
         pr = ProcurementRequest.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
-        self.assertEqual(pr.status, "DRAFT")
+        self.assertEqual(pr.status, "CREATED")
+
+
+class ProcurementItemTest(OpsModelTestBase):
+    def test_procurement_item_deleted_with_request(self):
+        pr = ProcurementRequest.objects.create(
+            company=self.company,
+            target_date=date(2026, 3, 1),
+        )
+        item = ProcurementItem.objects.create(
+            request=pr,
+            raw_material=self.material,
+            demand_quantity="10.00",
+            stock_quantity="0.00",
+            purchase_quantity="10.00",
+        )
+        pr.delete()
+        self.assertFalse(ProcurementItem.objects.filter(id=item.id).exists())
 
 
 class DailyMenuTest(OpsModelTestBase):
@@ -257,20 +292,24 @@ class StapleDemandTest(OpsModelTestBase):
 class ReceivingRecordTest(OpsModelTestBase):
     def test_str(self):
         pr = ProcurementRequest.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         rr = ReceivingRecord.objects.create(
-            procurement=pr, company=self.company
+            procurement=pr,
+            company=self.company,
         )
         s = str(rr)
         self.assertIn("RCV", s)
 
     def test_default_status(self):
         pr = ProcurementRequest.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         rr = ReceivingRecord.objects.create(
-            procurement=pr, company=self.company
+            procurement=pr,
+            company=self.company,
         )
         self.assertEqual(rr.status, "PENDING")
 
@@ -278,7 +317,8 @@ class ReceivingRecordTest(OpsModelTestBase):
 class ProcessingOrderTest(OpsModelTestBase):
     def test_str(self):
         po = ProcessingOrder.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         s = str(po)
         self.assertIn("PROC", s)
@@ -286,7 +326,8 @@ class ProcessingOrderTest(OpsModelTestBase):
 
     def test_default_status(self):
         po = ProcessingOrder.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         self.assertEqual(po.status, "DRAFT")
 
@@ -294,10 +335,12 @@ class ProcessingOrderTest(OpsModelTestBase):
 class ProcessingItemTest(OpsModelTestBase):
     def test_str_with_processing(self):
         po = ProcessingOrder.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         pm = ProcessedMaterial.objects.create(
-            raw_material=self.material, method_name="Diced"
+            raw_material=self.material,
+            method_name="Diced",
         )
         pi = ProcessingItem.objects.create(
             order=po,
@@ -313,7 +356,8 @@ class ProcessingItemTest(OpsModelTestBase):
 
     def test_str_without_processing(self):
         po = ProcessingOrder.objects.create(
-            company=self.company, target_date=date(2026, 3, 1)
+            company=self.company,
+            target_date=date(2026, 3, 1),
         )
         pi = ProcessingItem.objects.create(
             order=po,
@@ -323,7 +367,6 @@ class ProcessingItemTest(OpsModelTestBase):
             gross_quantity=Decimal("5.00"),
         )
         s = str(pi)
-        # Without processing, it shows the no-processing indicator
         self.assertIn("Potato", s)
 
 
@@ -369,3 +412,18 @@ class DeliveryItemTest(OpsModelTestBase):
         self.assertIn("East Wing", s)
         self.assertIn("Standard A", s)
         self.assertIn("20", s)
+
+    def test_delivery_item_deleted_with_order(self):
+        do = DeliveryOrder.objects.create(
+            company=self.company,
+            target_date=date(2026, 3, 1),
+            meal_time="L",
+        )
+        di = DeliveryItem.objects.create(
+            delivery=do,
+            region=self.region,
+            diet_category=self.diet,
+            count=20,
+        )
+        do.delete()
+        self.assertFalse(DeliveryItem.objects.filter(id=di.id).exists())
