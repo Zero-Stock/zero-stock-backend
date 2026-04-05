@@ -18,6 +18,8 @@ from ..serializers import ProcurementRequestSerializer, ProcurementItemSerialize
 
 
 def require_rw(user):
+    # if getattr(user.profile, "role", "RO") != "RW":
+    #     raise PermissionDenied("RW role required.")
     pass
 
 

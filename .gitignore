@@ -10,3 +10,6 @@ __pycache__/
 
 # macOS
 .DS_Storevenv/
+.coverage
+coverage.json
+htmlcov/

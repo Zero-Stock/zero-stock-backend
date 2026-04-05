@@ -12,6 +12,8 @@ from common.views import success_response
 from core.models import RawMaterial, RawMaterialYieldRate
 
 def require_rw(user):
+    # if getattr(user.profile, "role", "RO") != "RW":
+    #     raise PermissionDenied("RW role required.")
     pass
 
 def compute_effective_date(now_local):

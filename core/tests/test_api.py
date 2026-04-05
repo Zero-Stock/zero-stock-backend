@@ -593,3 +593,227 @@ class MaterialStockAPITest(APITestBase):
         m2 = RawMaterial.objects.get(name="BatchStock2")
         self.assertEqual(m1.stock, Decimal("50.00"))
         self.assertEqual(m2.stock, Decimal("25.00"))
+
+
+# ---- Branch Coverage: core/views/search_views.py ----
+
+class CoreSearchBranchTest(APITestBase):
+    """Cover both sides of each filter branch in core search views."""
+
+    def test_material_search_with_name(self):
+        """Branch 28->29: name filter present."""
+        RawMaterial.objects.create(name="BranchMat", category=self.category)
+        r = self.client.post("/api/materials/search/", {"name": "Branch"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json()["results"]["total"] >= 1)
+
+    def test_material_search_with_category(self):
+        """Branch 30->31: category filter present."""
+        RawMaterial.objects.create(name="CatBMat", category=self.category)
+        r = self.client.post("/api/materials/search/",
+                             {"category": self.category.id}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_dish_search_with_name(self):
+        """Branch 51->52: name filter present."""
+        Dish.objects.create(name="BranchDish")
+        r = self.client.post("/api/dishes/search/", {"name": "Branch"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_supplier_search_with_name(self):
+        """Branch 70->71: name filter present."""
+        Supplier.objects.create(name="BranchSupp")
+        r = self.client.post("/api/suppliers/search/", {"name": "Branch"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_diet_search_with_name(self):
+        """Branch 89->90: name filter present."""
+        r = self.client.post("/api/diets/search/", {"name": "Standard"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+
+# ---- Branch Coverage: common/views.py ----
+
+class BaseSearchViewBranchTest(APITestBase):
+    """Cover ordering and pagination branches in BaseSearchView."""
+
+    def test_search_with_allowed_ordering(self):
+        """Branch 108->109: field in allowed_ordering."""
+        RawMaterial.objects.create(name="OrdMat", category=self.category)
+        r = self.client.post("/api/materials/search/",
+                             {"ordering": "name"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_search_with_disallowed_ordering(self):
+        """Branch 108->111: field NOT in allowed_ordering."""
+        r = self.client.post("/api/materials/search/",
+                             {"ordering": "invalid_field"}, format="json")
+        self.assertEqual(r.status_code, 200)
+
+    def test_search_pagination(self):
+        """Cover page/page_size."""
+        for i in range(5):
+            RawMaterial.objects.create(name=f"PgMat{i}", category=self.category)
+        r = self.client.post("/api/materials/search/",
+                             {"page": 1, "page_size": 2}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["results"]["page_size"], 2)
+
+
+class ErrorResponseBranchTest(APITestBase):
+    """Cover _detect_error_type branches in common/views.py."""
+
+    def test_error_type_auto_detect_unknown_4xx(self):
+        """Branch 51->52: 4xx not in mapping -> BAD_REQUEST."""
+        from common.views import _detect_error_type
+        self.assertEqual(_detect_error_type(418), "BAD_REQUEST")
+
+    def test_error_type_auto_detect_5xx(self):
+        """Branch 51->53: >=500 -> SERVER_ERROR."""
+        from common.views import _detect_error_type
+        self.assertEqual(_detect_error_type(500), "SERVER_ERROR")
+
+    def test_error_type_known(self):
+        """Branch 49->50: known status code."""
+        from common.views import _detect_error_type
+        self.assertEqual(_detect_error_type(404), "NOT_FOUND")
+
+    def test_error_response_custom_type(self):
+        """Branch 63->65: error_type provided (skip auto-detect)."""
+        from common.views import error_response
+        r = error_response(error="test", error_type="CUSTOM")
+        self.assertEqual(r.data["error"]["type"], "CUSTOM")
+
+
+# ---- Branch Coverage: common/renderers.py ----
+
+class RendererBranchTest(APITestBase):
+    """Cover _error_type_for and _extract_message branches."""
+
+    def test_error_type_for_unknown_4xx(self):
+        """Branch 32->33: unknown 4xx."""
+        from common.renderers import _error_type_for
+        self.assertEqual(_error_type_for(418), "BAD_REQUEST")
+
+    def test_error_type_for_5xx(self):
+        """Branch 32->34: 5xx."""
+        from common.renderers import _error_type_for
+        self.assertEqual(_error_type_for(500), "SERVER_ERROR")
+
+    def test_extract_message_list(self):
+        """Branch 84->85: data is a list."""
+        from common.renderers import EnvelopeRenderer
+        msg = EnvelopeRenderer._extract_message(["error message"])
+        self.assertEqual(msg, "error message")
+
+    def test_extract_message_none(self):
+        """Branch covers return None for unrecognized data."""
+        from common.renderers import EnvelopeRenderer
+        msg = EnvelopeRenderer._extract_message(42)
+        self.assertIsNone(msg)
+
+
+# ---- Branch Coverage: common/exception_handler.py ----
+
+class ExceptionHandlerBranchTest(APITestBase):
+    """Cover non-ProtectedError branch (line 46: return None)."""
+
+    def test_non_protected_error_returns_none(self):
+        """Branch 22->46: exc is NOT ProtectedError."""
+        from common.exception_handler import custom_exception_handler
+        result = custom_exception_handler(ValueError("test"), {})
+        self.assertIsNone(result)
+
+
+# ---- Branch Coverage: core/serializers.py ----
+
+class SerializerBranchTest(APITestBase):
+    """Cover serializer branches for yield_rate, specs, and dish update."""
+
+    def test_create_material_with_yield_rate(self):
+        """Branch 71->74: yield_rate is not None."""
+        r = self.client.post("/api/materials/batch/", [{
+            "name": "YieldBrMat",
+            "category": self.category.id,
+            "yield_rate": "0.85",
+        }], format="json")
+        self.assertEqual(r.status_code, 200)
+        from core.models import RawMaterialYieldRate
+        mat = RawMaterial.objects.get(name="YieldBrMat")
+        self.assertTrue(RawMaterialYieldRate.objects.filter(raw_material=mat).exists())
+
+    def test_create_material_with_specs(self):
+        """Branch 92->95: specs_data is truthy."""
+        r = self.client.post("/api/materials/batch/", [{
+            "name": "SpecsBrMat",
+            "category": self.category.id,
+            "specs": [{"method_name": "Diced"}, {"method_name": "Sliced"}],
+        }], format="json")
+        self.assertEqual(r.status_code, 200)
+        mat = RawMaterial.objects.get(name="SpecsBrMat")
+        self.assertEqual(mat.specs.count(), 2)
+
+    def test_create_material_specs_dedup(self):
+        """Branch 101->102: duplicate method_name skipped."""
+        r = self.client.post("/api/materials/batch/", [{
+            "name": "DedupMat",
+            "category": self.category.id,
+            "specs": [{"method_name": "Diced"}, {"method_name": "Diced"}],
+        }], format="json")
+        self.assertEqual(r.status_code, 200)
+        mat = RawMaterial.objects.get(name="DedupMat")
+        self.assertEqual(mat.specs.count(), 1)
+
+    def test_create_material_specs_empty_method_skipped(self):
+        """Branch 98->99 and 101->102: empty method name skipped."""
+        from core.serializers import RawMaterialSerializer
+        mat = RawMaterial.objects.create(name="EmptySpecMat", category=self.category)
+        serializer = RawMaterialSerializer()
+        # Directly call _upsert_specs with empty/whitespace method names
+        serializer._upsert_specs(mat, [{"method_name": ""}, {"method_name": "  "}, None])
+        self.assertEqual(mat.specs.count(), 0)
+
+    def test_update_dish_with_ingredients(self):
+        """Branch 208->209: ingredients_data is not None on update."""
+        mat = RawMaterial.objects.create(name="DishUpdMat", category=self.category)
+        dish = Dish.objects.create(name="UpdDish")
+        DishIngredient.objects.create(
+            dish=dish, raw_material=mat, net_quantity="0.100",
+        )
+        r = self.client.patch(f"/api/dishes/{dish.id}/", {
+            "ingredients_write": [
+                {"raw_material": mat.id, "net_quantity": "0.200"},
+            ],
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(dish.ingredients.count(), 1)
+        self.assertEqual(dish.ingredients.first().net_quantity, Decimal("0.200"))
+
+    def test_update_dish_without_ingredients(self):
+        """Branch 208->217: ingredients_data is None (not provided)."""
+        dish = Dish.objects.create(name="NoIngUpd")
+        r = self.client.patch(f"/api/dishes/{dish.id}/", {
+            "name": "NoIngUpdated",
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+
+
+# ---- Branch Coverage: auth_views.py ----
+
+class AuthBranchTest(TestCase):
+    """Cover logout with missing refresh token branch."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from core.models import ClientCompany, UserProfile
+        cls.company = ClientCompany.objects.create(name="AuthBrCo", code="ABRC01")
+        cls.user = User.objects.create_user(username="authbruser", password="pass1234")
+        UserProfile.objects.create(user=cls.user, company=cls.company, role="RW")
+
+    def test_logout_missing_refresh(self):
+        """Branch 73->74: refresh token not provided."""
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        r = client.post("/api/auth/logout/", {})
+        self.assertEqual(r.status_code, 400)
+
